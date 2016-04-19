@@ -144,40 +144,40 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  sendRREQ: This broadcasts the RREQ to find the path from the source to
+  //--------------------------------------------------------------------------			Metodo cuya finalidad es enviar un mensaje de difusion para encontrar en camino hacia el destino
+  //  sendRREQ: This broadcasts the RREQ to find the path from the source to            
   //  the destination.
   //--------------------------------------------------------------------------
-  bool sendRREQ( am_addr_t dest, bool forward ) {
-    aodv_rreq_hdr* aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data);
+  bool sendRREQ( am_addr_t dest, bool forward ) {  //Parametros de entrada -> dirección de destino (deberiamos cambiarlo por in INT) 
+    aodv_rreq_hdr* aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data); // se crea el paquete a enviar
     
     //dbg("AODV", "%s\t AODV: sendRREQ() dest: %d\n", sim_time_string(), dest);
     
-    if( rreq_pending_ == TRUE ) {
+    if( rreq_pending_ == TRUE ) {  // Si estamos esperando respuesta no hacemos nada.
       return FALSE;
     }
     
-    if( forward == FALSE ) { // generate the RREQ for the first time
-      aodv_hdr->seq      = rreq_seq_++;
-      aodv_hdr->dest     = dest;
-      aodv_hdr->src      = call AMPacket.address();
-      aodv_hdr->hop      = 1;
+    if( forward == FALSE ) { // generate the RREQ for the first time (es decir, cuando se genera el paquete)
+      aodv_hdr->seq      = rreq_seq_++;  //Aumentamos numero de secuencia
+      aodv_hdr->dest     = dest; //Asginamos el destino
+      aodv_hdr->src      = call AMPacket.address();  //Asignamos la fuente del mensaje
+      aodv_hdr->hop      = 1; //En un inicio inicializamos el numero de saltos a 1
       add_rreq_cache( aodv_hdr->seq, aodv_hdr->dest, aodv_hdr->src, 0 );
     } else { // forward the RREQ
-      aodv_hdr->hop++;
+      aodv_hdr->hop++; 		//En caso de que solo debamos encaminar, solo debemos aumentar el numero de saltos
     }
     
-    if (!send_pending_) {
+    if (!send_pending_) {			//Si no estamos pendiente de envio...
       if( call SendRREQ.send(TOS_BCAST_ADDR, p_rreq_msg_, 
-                                    AODV_RREQ_HEADER_LEN) == SUCCESS) {
+                                    AODV_RREQ_HEADER_LEN) == SUCCESS) {  //Intentamos enviar hasta que lo hacemos bien
         dbg("AODV", "%s\t AODV: sendRREQ()\n", sim_time_string());
-        send_pending_ = TRUE;
+        send_pending_ = TRUE; //Nos quedamos en estado de espera
         return TRUE;
       }
     }
     
-    rreq_pending_ = TRUE;
-    rreq_retries_ = AODV_RREQ_RETRIES;
+    rreq_pending_ = TRUE;   
+    rreq_retries_ = AODV_RREQ_RETRIES; //Resetea los reintentos a 3
     return FALSE;
   }
   
@@ -421,64 +421,70 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
   //  get_route_table_index: Return the index which is correspoing to
   //  the destination
+  //Devuelve el indice de la tabla correspondiente al destino
   //--------------------------------------------------------------------------
   uint8_t get_route_table_index( am_addr_t dest ) {
     int i;
     for(i=0; i< AODV_ROUTE_TABLE_SIZE; i++) {
-      if(route_table_[i].dest == dest)
+      if(route_table_[i].dest == dest)  // Recorre recursivamente la tabla de enrutamiento buscando el identifcador del destino y lo devuelve
         return i;
     }
     return INVALID_INDEX;
   } //
   
-  
-  void del_route_table( am_addr_t dest ) {
+  //--------------------------------------------------------------------------
+  //  del_route_table:Borra una entrada de la tabla de enrutamiento
+  //--------------------------------------------------------------------------
+  void del_route_table( am_addr_t dest ) {  // Parametros de entrada -> Entrada de la tabla a borrar
     uint8_t i;
-    uint8_t id = get_route_table_index( dest );
+    uint8_t id = get_route_table_index( dest ); //Se obtiene el identificador en la tabla
     
     dbg("AODV", "%s\t AODV: del_route_table() dest:%d\n",
                                        sim_time_string(), dest);
     
-    for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {
-      if(route_table_[i+1].dest == INVALID_NODE_ID) {
+    for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {    //Se recorre recursivamente la tabla de enrutamiento...
+      if(route_table_[i+1].dest == INVALID_NODE_ID) {   //...cuando se encuentra la entrada salimos del for...
         break;
       }
       route_table_[i] = route_table_[i+1];
     }
     
-    route_table_[i].dest = INVALID_NODE_ID;
+    route_table_[i].dest = INVALID_NODE_ID;   //Se cambia en dicha entrada los valores de destino y siguiente salto a un numero invalido predefinidio
     route_table_[i].next = INVALID_NODE_ID;
-    route_table_[i].seq  = 0;
+    route_table_[i].seq  = 0;				  //Se cambia en dicha entrada los valores de numero de secuencia y numero de saltos a 0
     route_table_[i].hop  = 0;
     
-    print_route_table();
+    print_route_table(); //Muestra la tabla de enrutamiento
   }
   
   
-  //--------------------------------------------------------------------------
+	//--------------------------------------------------------------------------
   //  add_route_table: If a route information is a new or fresh one, it is 
   //  added to the route table.
+  //  Si una informacion de ruta es nueva o mas actualizada que otra, es añadida a la tabla de enrutamiento
+  //(Falta código por mirar)
   //--------------------------------------------------------------------------
-  bool add_route_table( uint8_t seq, am_addr_t dest, am_addr_t nexthop, uint8_t hop ) {
+  bool add_route_table( uint8_t seq, am_addr_t dest, am_addr_t nexthop, uint8_t hop ) { //Parametros de entrada-> Numero de secuencia, destino,siguiente salto y numero de saltos
     uint8_t i;
-    uint8_t id = AODV_ROUTE_TABLE_SIZE;
+    uint8_t id = AODV_ROUTE_TABLE_SIZE; //Por defecto 10
     
     dbg("AODV_DBG", "%s\t AODV: add_route_table() seq:%d dest:%d next:%d hop:%d\n",
                                     sim_time_string(), seq, dest, nexthop, hop);
+									
     for( i=0 ; i < AODV_ROUTE_TABLE_SIZE-1 ; i++ ) {
-      if( route_table_[i].dest == dest ) {
+      if( route_table_[i].dest == dest ) {   //Primero recorre la tabla recursivamente para buscar si el destino ya existe dentro de la tabla
         id = i;
         break;
       }
-      if( route_table_[i].dest == INVALID_NODE_ID ) {
+      if( route_table_[i].dest == INVALID_NODE_ID ) {   //Si encuentra una entrada donde el destino es no valido, sale del bucle
         break;
       }
     }
     
-    if( id != AODV_ROUTE_TABLE_SIZE ) {
+    if( id != AODV_ROUTE_TABLE_SIZE ) {		
       if( route_table_[id].next == nexthop ) {
         if( route_table_[id].seq < seq || route_table_[id].hop > hop ) {
           route_table_[id].seq = seq;
