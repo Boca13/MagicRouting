@@ -9,15 +9,12 @@
 
 // Estrucutra punto para representar posiciones
 typedef struct {
-	float x;
-	float y;
+	double x;
+	double y;
 }punto;
 
 // Posiciones de los nodos estáticos
-const punto posiciones[N_NODOS] = {{0.0, 0.0}, {100.0, 50.0}, {50.0, 100.0}};
-
-// Pesos que se calcularán para obtener la posición del nodo móvil
-float pesos[N_NODOS];
+punto posiciones[N_NODOS];
 
 // Medidas del RSSI obtenidas de los nodos estáticos
 int16_t rssi[N_NODOS];
@@ -27,12 +24,14 @@ punto calcularPos()
 	uint8_t j;
 	punto posicion = {0.0, 0.0}; // Resultado de la función
 	punto numerador = {0.0, 0.0};
-	float sumPesos = 0.0; // Denominador
+	// Pesos que se calcularán para obtener la posición del nodo móvil
+	double pesos[N_NODOS];
+	double sumPesos = 0.0; // Denominador
 	// Bucle que itera para cada nodo estático
 	for(j = 0; j < N_NODOS; j++)
 	{
 		// Calcular pesos
-		pesos[j] = 1/(pow10((rssi[j]-RSSI_B)/RSSI_A));
+		pesos[j] = 1/(Math.pow(10,(rssi[j]-RSSI_B)/RSSI_A));
 		
 		// Añadir nuevo peso a la suma (denominador de L)
 		sumPesos += pesos[j];
