@@ -210,8 +210,9 @@ implementation {
   //--------------------------------------------------------------------------
   //  sendRERR: If the node fails to transmit a message over the retransmission
   //  limit, it will send RERR to the source node of the message.
+  //  Si el nodo falla al transmitir un mensaje sobre el limite de reenvios  envia un paquete del tipo RERR al origen del mismo
   //--------------------------------------------------------------------------
-  bool sendRERR( am_addr_t dest, am_addr_t src, bool forward ){
+  bool sendRERR( am_addr_t dest, am_addr_t src, bool forward ){ //Creacion y envio de un paquete de route Error si falla algun reenvio 
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_rerr_msg_->data);
     am_addr_t target;
     
@@ -222,24 +223,24 @@ implementation {
     
     target = get_next_hop( src );
     
-    if (!send_pending_) {
-      if( call SendRERR.send(target, p_rerr_msg_, AODV_RERR_HEADER_LEN)) {
+    if (!send_pending_) {				//si no estamos pendiente de envio 
+      if( call SendRERR.send(target, p_rerr_msg_, AODV_RERR_HEADER_LEN)) { //
         dbg("AODV", "%s\t AODV: sendRREQ() to %d\n", sim_time_string(), target);
         send_pending_ = TRUE;
         return TRUE;
       }
     }
     
-    rerr_pending_ = TRUE;
+    rerr_pending_ = TRUE;			//esperamos la respuesta del nodo origen del paquete primero 
     rerr_retries_ = AODV_RERR_RETRIES;
     return FALSE;
   }
   
   
-  task void resendRREQ() {
+  task void resendRREQ() { //renvio de un  router discovery
     dbg("AODV", "%s\t AODV: resendRREQ()\n", sim_time_string());
     
-    if(rreq_retries_ <= 0){
+    if(rreq_retries_ <= 0){   //intentamos renviar el mensaje Route discovery hasta que baja a 0 
       rreq_pending_ = FALSE;
       return;
     }
@@ -254,9 +255,9 @@ implementation {
   }
   
   
-  task void resendRREP(){
+  task void resendRREP(){		//Renvio de un Route replay
     am_addr_t dest = call AMPacket.destination( p_rrep_msg_ );
-    if( rrep_retries_ == 0 ) {
+    if( rrep_retries_ == 0 ) {	//intentamos renviar el mensaje Route replay hasta que baja a 0 
       rrep_pending_ = FALSE;
       return;
     }
@@ -274,9 +275,9 @@ implementation {
   }
   
   
-  task void resendRERR(){
+  task void resendRERR(){		//Renvio de un Route error 
     am_addr_t dest = call AMPacket.destination( p_rerr_msg_ );
-    if( rerr_retries_ == 0 ) {
+    if( rerr_retries_ == 0 ) {	//intentamos renviar el mensaje Route error hasta que baja a 0 
       rerr_pending_ = FALSE;
       return;
     }
@@ -416,7 +417,7 @@ implementation {
       if( rreq_cache_[i].dest == INVALID_NODE_ID )
 	break;
       else if( rreq_cache_[i].ttl-- == 0 )
-        del_rreq_cache(i);
+        del_rreq_cache(i);		//borra el elemento de la cache de route request
     }
   }
   
