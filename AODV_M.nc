@@ -306,7 +306,7 @@ implementation {
       return;
     }
     msg_retries_--;
-    call PacketAcknowledgements.requestAck( p_aodv_msg_ );
+    call PacketAcknowledgements.requestAck( p_aodv_msg_ );  //  transmite el mensaje y lo reintenrta hasta que recibe el ack del nodo destino 
     if( !send_pending_ ) {
       if( call SubSend.send( call AMPacket.destination(p_aodv_msg_),
                         p_aodv_msg_,
@@ -319,7 +319,7 @@ implementation {
   }
   
   
-  uint8_t get_rreq_cache_index( am_addr_t src, am_addr_t dest ){
+  uint8_t get_rreq_cache_index( am_addr_t src, am_addr_t dest ){   //devuelve el valor del indice del vector de la tabla de reenvio 
     int i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if( rreq_cache_[i].src == src && rreq_cache_[i].dest == dest ) {
@@ -351,7 +351,7 @@ implementation {
   } //
   
   
-  bool add_rreq_cache( uint8_t seq, am_addr_t dest, am_addr_t src, uint8_t hop ) {
+  bool add_rreq_cache( uint8_t seq, am_addr_t dest, am_addr_t src, uint8_t hop ) {  // añade una fila a la tabla de reenvio del nodo  o la actualiza
     uint8_t i;
     uint8_t id = AODV_RREQ_CACHE_SIZE;
     
@@ -364,7 +364,7 @@ implementation {
       break;
     }
     
-    if( id != AODV_RREQ_CACHE_SIZE ) {
+    if( id != AODV_RREQ_CACHE_SIZE ) {											//actualiza la fila de la cache si ya tiene una entrada para el par origen-destino 
       if( rreq_cache_[i].src == src && rreq_cache_[i].dest == dest ) {
         if( rreq_cache_[id].seq < seq || rreq_cache_[id].hop > hop ) {
           rreq_cache_[id].seq = seq;
@@ -373,7 +373,7 @@ implementation {
           return TRUE;
         }
       }
-    } else if( i != AODV_RREQ_CACHE_SIZE ) {
+    } else if( i != AODV_RREQ_CACHE_SIZE ) {									// nueva entrada en la cache
       rreq_cache_[i].seq  = seq;
       rreq_cache_[i].dest = dest;
       rreq_cache_[i].src  = src;
@@ -387,7 +387,7 @@ implementation {
   }
   
   
-  void del_rreq_cache( uint8_t id ) {
+  void del_rreq_cache( uint8_t id ) {								// borra la fila de la cache anulando sus valores y poniendolos por defecto 
     uint8_t i;
     
     for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {
@@ -411,7 +411,7 @@ implementation {
   //  If the ttl of a rreq_cache entity equals to zero, the entity will be 
   //  removed.
   //--------------------------------------------------------------------------
-  task void update_rreq_cache() {
+  task void update_rreq_cache() {									//si el timer de la entrada se vuelve 0 llama a del_rreq_cache  y la borra 
     uint8_t i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE-1 ; i++ ) {
       if( rreq_cache_[i].dest == INVALID_NODE_ID )
@@ -485,7 +485,7 @@ implementation {
       }
     }
     
-    if( id != AODV_ROUTE_TABLE_SIZE ) {		
+    if( id != AODV_ROUTE_TABLE_SIZE ) {		// si el siguiente salto es igual a uno existente y cambia el numero del salto o la seq se actualiza 
       if( route_table_[id].next == nexthop ) {
         if( route_table_[id].seq < seq || route_table_[id].hop > hop ) {
           route_table_[id].seq = seq;
@@ -494,7 +494,7 @@ implementation {
           return TRUE;
         }
       }
-    } else if( i != AODV_ROUTE_TABLE_SIZE ) {
+    } else if( i != AODV_ROUTE_TABLE_SIZE ) {   // si no exite la entrada en la tabla de enrutamiento genera una nueva entrada 
       route_table_[i].seq  = seq;
       route_table_[i].dest = dest;
       route_table_[i].next = nexthop;
@@ -511,7 +511,7 @@ implementation {
   //  get_next_hop: Return the nexthop node address of the message if the 
   //  address exists in the route table.
   //--------------------------------------------------------------------------
-  am_addr_t get_next_hop( am_addr_t dest ) {
+  am_addr_t get_next_hop( am_addr_t dest ) {    // comprueba el destino y devuelve el siguiente salto
     int i;
     for( i=0 ; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == dest) {
