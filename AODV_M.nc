@@ -93,7 +93,7 @@ implementation {
   void print_rreq_cache();
 #endif
   
-  command error_t SplitControl.start() {
+  command error_t SplitControl.start() {  // comienzo del programa, llena las tablas con los valores por defecto e inicia el modulo de radio 
     int i;
     
     p_rreq_msg_     = &rreq_msg_;
@@ -524,9 +524,9 @@ implementation {
   
   //--------------------------------------------------------------------------
   //  forwardMSG: The node forwards a message to the next-hop node if the 
-  //  target of the message is not itself.
+  //  target of the message is not itself.  //Si recibe un mensaje y no es el objetivo lo reenvia al siguiente salto
   //--------------------------------------------------------------------------
-  error_t forwardMSG( message_t* p_msg, am_addr_t nexthop, uint8_t len ) {
+  error_t forwardMSG( message_t* p_msg, am_addr_t nexthop, uint8_t len ) {  //
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     aodv_msg_hdr* msg_aodv_hdr = (aodv_msg_hdr*)(p_aodv_msg_->data);
     uint8_t i;
@@ -565,7 +565,8 @@ implementation {
   //--------------------------------------------------------------------------
   //  AMSend.send: If there is a route to the destination, the message will be 
   //  sent to the next-hop node for the destination. Or, the node will broadcast
-  //  the RREQ.
+  //  the RREQ.		Si recibe un mensaje y es el destino manda un SUCCESS
+  //  si no lo es manda el mensaje RREQ 
   //--------------------------------------------------------------------------
   command error_t AMSend.send[am_id_t id](am_addr_t addr, message_t* msg, uint8_t len) {
     uint8_t i;
@@ -580,7 +581,8 @@ implementation {
       return SUCCESS;
     }
     /* If the next-hop node for the destination does not exist, the RREQ will be
-       broadcasted */
+       broadcasted  Manda un mensaje RREQ si cuando llega el mensaje no es el destino
+	   y tampoco posee dicha entrada en su tabla de reenvio */ 
     if( nexthop == INVALID_NODE_ID ) {
       if( !rreq_pending_ ) {
         dbg("AODV", "%s\t AODV: AMSend.send() a new destination\n", 
@@ -615,7 +617,7 @@ implementation {
   
   //--------------------------------------------------------------------------
   //  SendRREQ.sendDone: If the RREQ transmission is finished, it will release
-  //  the RREQ and SEND pendings.
+  //  the RREQ and SEND pendings. // si el mensaje RREQ se ha enviado correctamente libera las esperas 
   //--------------------------------------------------------------------------
   event void SendRREQ.sendDone(message_t* p_msg, error_t e) {
     dbg("AODV_DBG", "%s\t AODV: SendRREQ.sendDone()\n", sim_time_string());
@@ -626,7 +628,7 @@ implementation {
   
   //--------------------------------------------------------------------------
   //  SendRREP.sendDone: If the RREP transmission is finished, it will release
-  //  the RREP and SEND pendings.
+  //  the RREP and SEND pendings. // si el mensaje RREP se ha enviado correctamente libera las esperas
   //--------------------------------------------------------------------------
   event void SendRREP.sendDone(message_t* p_msg, error_t e) {
     dbg("AODV_DBG", "%s\t AODV: SendRREP.sendDone()\n", sim_time_string());
@@ -640,7 +642,7 @@ implementation {
   
   //--------------------------------------------------------------------------
   //  SendRERR.sendDone: If the RERR transmission is finished, it will release
-  //  the RERR and SEND pendings.
+  //  the RERR and SEND pendings.  // si el mensaje RERR se ha enviado correctamente libera las esperas
   //--------------------------------------------------------------------------
   event void SendRERR.sendDone(message_t* p_msg, error_t e) {
     dbg("AODV_DBG", "%s\t AODV: SendRERR.sendDone() \n", sim_time_string());
@@ -655,7 +657,8 @@ implementation {
   //--------------------------------------------------------------------------
   //  ReceiveRREQ.receive: If the destination of the RREQ is me, the node will
   //  send the RREP back to establish the reverse route. Or, the node forwards
-  //  the RREQ to the nextt-hop node.
+  //  the RREQ to the nextt-hop node. // Si recibe un RREQ y es el destino envia 
+  //  devuelta un RREP en caso contrario envia el RREQ al siguiente salto
   //--------------------------------------------------------------------------
   event message_t* ReceiveRREQ.receive( message_t* p_msg, 
                                                  void* payload, uint8_t len ) {
@@ -717,7 +720,8 @@ implementation {
   //--------------------------------------------------------------------------
   //  ReceiveRREP.receive: If the source address of the RREP is me, it means
   //  the route to the destination is established. Or, the node forwards
-  //  the RREP to the next-hop node.
+  //  the RREP to the next-hop node. // Si recibe un RREP y es el destino 
+  //  se ha establecidouna ruta en caso contrario envia el RREP al siguiente salto
   //--------------------------------------------------------------------------
   event message_t* ReceiveRREP.receive( message_t* p_msg, 
                                                  void* payload, uint8_t len ) {
@@ -747,7 +751,7 @@ implementation {
   
   
   event message_t* ReceiveRERR.receive( message_t* p_msg, 
-                                                 void* payload, uint8_t len ) {
+                                                 void* payload, uint8_t len ) {  // mensaje RERR recibido 
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_msg->data);
     dbg("AODV", "%s\t AODV: ReceiveRERR.receive()\n", sim_time_string());
     del_route_table( aodv_hdr->dest );
@@ -758,7 +762,7 @@ implementation {
   }
   
   
-  command error_t AMSend.cancel[am_id_t id](message_t* msg) {
+  command error_t AMSend.cancel[am_id_t id](message_t* msg) { 
     return call SubSend.cancel(msg);
   }
   
@@ -783,7 +787,7 @@ implementation {
   }
   */
   
-  /***************** SubSend Events ****************/
+  /***************** SubSend Events ****************/  // Metodo para el envio real de los mensajes 
   event void SubSend.sendDone(message_t* p_msg, error_t e) {
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     bool wasAcked = call PacketAcknowledgements.wasAcked(p_msg);
@@ -820,7 +824,7 @@ implementation {
   }
   
   
-  /***************** SubReceive Events ****************/
+  /***************** SubReceive Events ****************/  // Metodo para la recepcion real de los mensajes 
   event message_t* SubReceive.receive( message_t* p_msg, 
                                                  void* payload, uint8_t len ) {
     uint8_t i;
@@ -851,7 +855,7 @@ implementation {
   }
   
   
-  event void AODVTimer.fired() {
+  event void AODVTimer.fired() { // evento para la expiración del timer de AODV 
     dbg("AODV_DBG2", "%s\t AODV: Timer.fired()\n", sim_time_string());
     if( rreq_pending_ ){
       post resendRREQ();
@@ -869,7 +873,7 @@ implementation {
   }
   
   
-  event void RREQTimer.fired() {
+  event void RREQTimer.fired() { //evento donde se avisa que el tiempo del RREQ se ha acabado y se envia un RREQ
     dbg("AODV_DBG", "%s\t AODV: RREQTimer.fired()\n", sim_time_string());
     sendRREQ( 0 , TRUE );
   }
@@ -885,7 +889,7 @@ implementation {
   
   
 #if AODV_DEBUG  
-  void print_route_table(){
+  void print_route_table(){   //funcion que recorre la tabla de reenvio y la imprime 
     uint8_t i;
     for( i=0; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == INVALID_NODE_ID)
@@ -897,7 +901,7 @@ implementation {
   }
   
   
-  void print_rreq_cache() {
+  void print_rreq_cache() { //funcion que recorre la tabla de rreq y la imprime 
     uint8_t i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if(rreq_cache_[i].dest == INVALID_NODE_ID )
