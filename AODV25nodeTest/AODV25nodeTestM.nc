@@ -5,7 +5,7 @@
  * Version: 0.0.1
  * Published under the terms of the GNU General Public License (GPLv2).
  */
- 
+ #include "printf.h"
 module AODV25nodeTestM {
   uses {
     interface Boot;
@@ -32,11 +32,12 @@ implementation {
   
   event void SplitControl.startDone(error_t err) {
     if (err == SUCCESS) {
-      dbg("APPS", "%s\t APPS: startDone %d.\n", sim_time_string(), err);
+      printf("He iniciado la radio correctamente, salu2");
       p_pkt = &pkt;
       if( TOS_NODE_ID == src )
         call MilliTimer.startPeriodic(1024);
     } else {
+      call Leds.led1Toggle();
       call SplitControl.start();
     }
   }
@@ -47,19 +48,21 @@ implementation {
   
   
   event void MilliTimer.fired() {
-    dbg("APPS", "%s\t APPS: MilliTimer.fired()\n", sim_time_string());
-    call Leds.led0Toggle();
+    printf("%s\t APPS: MilliTimer.fired()\n","");    
     call AMSend.send(dest, p_pkt, 5);
   }
   
   
   event void AMSend.sendDone(message_t* bufPtr, error_t error) {
-    dbg("APPS", "%s\t APPS: sendDone!!\n", sim_time_string());
+    printf("%s\t APPS: sendDone!!\n", "");
+    call Leds.led0Toggle();
+    printf("Envio un paquete a no se donde");
   }
   
   
   event message_t* Receive.receive(message_t* bufPtr, void* payload, uint8_t len) {
-    dbg("APPS", "%s\t APPS: receive!!\n", sim_time_string());
+    printf("%s\t APPS: receive!!\n", "");
+    call Leds.led0Toggle();
     return bufPtr;
   }
 }

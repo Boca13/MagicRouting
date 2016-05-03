@@ -5,6 +5,7 @@
  * Version: 0.0.1
  * Published under the terms of the GNU General Public License (GPLv2).
  */
+ #include "printf.h"
 configuration AODV25nodeTest {
 }
 

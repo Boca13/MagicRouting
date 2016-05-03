@@ -151,7 +151,7 @@ implementation {
   bool sendRREQ( am_addr_t dest, bool forward ) {  //Parametros de entrada -> dirección de destino (deberiamos cambiarlo por in INT) 
     aodv_rreq_hdr* aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data); // se crea el paquete a enviar
     
-    //dbg("AODV", "%s\t AODV: sendRREQ() dest: %d\n", sim_time_string(), dest);
+    //printf( "%s\t AODV: sendRREQ() dest: %d\n", "", dest);
     
     if( rreq_pending_ == TRUE ) {  // Si estamos esperando respuesta no hacemos nada.
       return FALSE;
@@ -170,7 +170,7 @@ implementation {
     if (!send_pending_) {			//Si no estamos pendiente de envio...
       if( call SendRREQ.send(TOS_BCAST_ADDR, p_rreq_msg_, 
                                     AODV_RREQ_HEADER_LEN) == SUCCESS) {  //Intentamos enviar hasta que lo hacemos bien
-        dbg("AODV", "%s\t AODV: sendRREQ()\n", sim_time_string());
+        printf( "%s\t AODV: sendRREQ()\n", "");
         send_pending_ = TRUE; //Nos quedamos en estado de espera
         return TRUE;
       }
@@ -188,14 +188,14 @@ implementation {
   //--------------------------------------------------------------------------
   bool sendRREP( am_addr_t dest, bool forward ){
     
-    dbg("AODV_DBG", "%s\t AODV: sendRREP() dest: %d send_pending_: %d\n", 
-                                      sim_time_string(), dest, send_pending_);
+    printf( "%s\t AODV: sendRREP() dest: %d send_pending_: %d\n", 
+                                      "", dest, send_pending_);
     
     if ( !send_pending_ ) {
       call PacketAcknowledgements.requestAck(p_rrep_msg_);
       if( call SendRREP.send(dest, p_rrep_msg_, 
                                            AODV_RREP_HEADER_LEN) == SUCCESS) {
-        dbg("AODV", "%s\t AODV: sendRREP() to %d\n", sim_time_string(), dest);
+        printf( "%s\t AODV: sendRREP() to %d\n", "", dest);
         send_pending_ = TRUE;
         return TRUE;
       }
@@ -216,7 +216,7 @@ implementation {
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_rerr_msg_->data);
     am_addr_t target;
     
-    dbg("AODV_DBG", "%s\t AODV: sendRERR() dest: %d\n", sim_time_string(), dest);
+    printf( "%s\t AODV: sendRERR() dest: %d\n", "", dest);
     
     aodv_hdr->dest = dest;
     aodv_hdr->src = src;
@@ -225,7 +225,7 @@ implementation {
     
     if (!send_pending_) {				//si no estamos pendiente de envio 
       if( call SendRERR.send(target, p_rerr_msg_, AODV_RERR_HEADER_LEN)) { //
-        dbg("AODV", "%s\t AODV: sendRREQ() to %d\n", sim_time_string(), target);
+        printf( "%s\t AODV: sendRREQ() to %d\n", "", target);
         send_pending_ = TRUE;
         return TRUE;
       }
@@ -238,7 +238,7 @@ implementation {
   
   
   task void resendRREQ() { //renvio de un  router discovery
-    dbg("AODV", "%s\t AODV: resendRREQ()\n", sim_time_string());
+    printf( "%s\t AODV: resendRREQ()\n", "");
     
     if(rreq_retries_ <= 0){   //intentamos renviar el mensaje Route discovery hasta que baja a 0 
       rreq_pending_ = FALSE;
@@ -267,7 +267,7 @@ implementation {
       call PacketAcknowledgements.requestAck( p_rrep_msg_ );
       if( call SendRREP.send( dest, 
                                p_rrep_msg_, AODV_RREP_HEADER_LEN) == SUCCESS) {
-        dbg("AODV", "%s\t AODV: resendRREP() to %d\n", sim_time_string(), dest);
+        printf( "%s\t AODV: resendRREP() to %d\n", "", dest);
         send_pending_ = TRUE;
         rrep_pending_ = FALSE;
       }
@@ -287,7 +287,7 @@ implementation {
       call PacketAcknowledgements.requestAck( p_rerr_msg_ );
       if( call SendRERR.send( dest, 
                                p_rerr_msg_, AODV_RERR_HEADER_LEN) == SUCCESS) {
-        dbg("AODV", "%s\t AODV: resendRERR() to %d\n", sim_time_string());
+        printf( "%s\t AODV: resendRERR() to %d\n", "");
         send_pending_ = TRUE;
         rerr_pending_ = FALSE;
       }
@@ -311,7 +311,7 @@ implementation {
       if( call SubSend.send( call AMPacket.destination(p_aodv_msg_),
                         p_aodv_msg_,
                         call Packet.payloadLength(p_aodv_msg_) ) == SUCCESS ) {
-        dbg("AODV", "%s\t AODV: resendMSG() broadcast\n", sim_time_string());
+        printf( "%s\t AODV: resendMSG() broadcast\n", "");
         send_pending_ = TRUE;
         msg_pending_ = FALSE;
       }
@@ -443,8 +443,8 @@ implementation {
     uint8_t i;
     uint8_t id = get_route_table_index( dest ); //Se obtiene el identificador en la tabla
     
-    dbg("AODV", "%s\t AODV: del_route_table() dest:%d\n",
-                                       sim_time_string(), dest);
+    printf( "%s\t AODV: del_route_table() dest:%d\n",
+                                       "", dest);
     
     for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {    //Se recorre recursivamente la tabla de enrutamiento...
       if(route_table_[i+1].dest == INVALID_NODE_ID) {   //...cuando se encuentra la entrada salimos del for...
@@ -472,8 +472,8 @@ implementation {
     uint8_t i;
     uint8_t id = AODV_ROUTE_TABLE_SIZE; //Por defecto 10
     
-    dbg("AODV_DBG", "%s\t AODV: add_route_table() seq:%d dest:%d next:%d hop:%d\n",
-                                    sim_time_string(), seq, dest, nexthop, hop);
+    printf( "%s\t AODV: add_route_table() seq:%d dest:%d next:%d hop:%d\n",
+                                    "", seq, dest, nexthop, hop);
 									
     for( i=0 ; i < AODV_ROUTE_TABLE_SIZE-1 ; i++ ) {
       if( route_table_[i].dest == dest ) {   //Primero recorre la tabla recursivamente para buscar si el destino ya existe dentro de la tabla
@@ -532,11 +532,11 @@ implementation {
     uint8_t i;
     
     if ( msg_pending_ ) {
-      dbg("AODV", "%s\t AODV: forwardMSG() msg_pending_\n", sim_time_string());
+      printf( "%s\t AODV: forwardMSG() msg_pending_\n", "");
       return FAIL;
     }
-    dbg("AODV_DBG", "%s\t AODV: forwardMSG() try to forward to %d \n", 
-                                                    sim_time_string(), nexthop);
+    printf( "%s\t AODV: forwardMSG() try to forward to %d \n", 
+                                                    "", nexthop);
     
     // forward MSG
     msg_aodv_hdr->dest = aodv_hdr->dest;
@@ -550,12 +550,12 @@ implementation {
     call PacketAcknowledgements.requestAck(p_aodv_msg_);
     
     if( call SubSend.send(nexthop, p_aodv_msg_, len) == SUCCESS ) {
-      dbg("AODV", "%s\t AODV: forwardMSG() send MSG to: %d\n", 
-                                                 sim_time_string(), nexthop);
+      printf( "%s\t AODV: forwardMSG() send MSG to: %d\n", 
+                                                 "", nexthop);
       msg_retries_ = AODV_MSG_RETRIES;
       msg_pending_ = TRUE;
     } else {
-      dbg("AODV", "%s\t AODV: forwardMSG() fail to send\n", sim_time_string());
+      printf( "%s\t AODV: forwardMSG() fail to send\n", "");
       msg_pending_ = FALSE;
     }
     return SUCCESS;
@@ -574,8 +574,7 @@ implementation {
     am_addr_t nexthop = get_next_hop( addr );
     am_addr_t me = call AMPacket.address();
     
-    dbg("AODV", "%s\t AODV: AMSend.send() dest: %d id: %d len: %d nexthop: %d\n", 
-                sim_time_string(), addr, id, len, nexthop);
+    printf("%s\t AODV: AMSend.send() dest: %d id: %d len: %d nexthop: %d\n", addr, id, len, nexthop);
     
     if( addr == me ) {
       return SUCCESS;
@@ -585,15 +584,15 @@ implementation {
 	   y tampoco posee dicha entrada en su tabla de reenvio */ 
     if( nexthop == INVALID_NODE_ID ) {
       if( !rreq_pending_ ) {
-        dbg("AODV", "%s\t AODV: AMSend.send() a new destination\n", 
-                                                             sim_time_string());
+        printf("AODV: AMSend.send() a new destination\n"); 
+                                                             
         sendRREQ( addr, FALSE );
         return SUCCESS;
       }
       return FAIL;
     }
-    dbg("AODV", "%s\t AODV: AMSend.send() there is a route to %d\n", 
-                                                        sim_time_string(), addr);
+    printf( "%s\t AODV: AMSend.send() there is a route to %d\n", 
+                                                        "", addr);
     aodv_hdr->dest = addr;
     aodv_hdr->src  = me;
     aodv_hdr->app  = id;
@@ -620,7 +619,7 @@ implementation {
   //  the RREQ and SEND pendings. // si el mensaje RREQ se ha enviado correctamente libera las esperas 
   //--------------------------------------------------------------------------
   event void SendRREQ.sendDone(message_t* p_msg, error_t e) {
-    dbg("AODV_DBG", "%s\t AODV: SendRREQ.sendDone()\n", sim_time_string());
+    printf( "%s\t AODV: SendRREQ.sendDone()\n", "");
     send_pending_ = FALSE;
     rreq_pending_ = FALSE;
   }
@@ -631,7 +630,7 @@ implementation {
   //  the RREP and SEND pendings. // si el mensaje RREP se ha enviado correctamente libera las esperas
   //--------------------------------------------------------------------------
   event void SendRREP.sendDone(message_t* p_msg, error_t e) {
-    dbg("AODV_DBG", "%s\t AODV: SendRREP.sendDone()\n", sim_time_string());
+    printf( "%s\t AODV: SendRREP.sendDone()\n", "");
     send_pending_ = FALSE;
     if( call PacketAcknowledgements.wasAcked(p_msg) )
       rrep_pending_ = FALSE;
@@ -645,7 +644,7 @@ implementation {
   //  the RERR and SEND pendings.  // si el mensaje RERR se ha enviado correctamente libera las esperas
   //--------------------------------------------------------------------------
   event void SendRERR.sendDone(message_t* p_msg, error_t e) {
-    dbg("AODV_DBG", "%s\t AODV: SendRERR.sendDone() \n", sim_time_string());
+    printf( "%s\t AODV: SendRERR.sendDone() \n", "");
     send_pending_ = FALSE;
     if( call PacketAcknowledgements.wasAcked(p_msg) )
       rerr_pending_ = FALSE;
@@ -671,8 +670,8 @@ implementation {
     aodv_rreq_hdr* rreq_aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data);
     aodv_rrep_hdr* rrep_aodv_hdr = (aodv_rrep_hdr*)(p_rrep_msg_->data);
     
-    dbg("AODV", "%s\t AODV: ReceiveRREQ.receive() src:%d dest: %d \n",
-                     sim_time_string(), aodv_hdr->src, aodv_hdr->dest);
+    printf( "%s\t AODV: ReceiveRREQ.receive() src:%d dest: %d \n",
+                     "", aodv_hdr->src, aodv_hdr->dest);
     
     if( aodv_hdr->hop > AODV_MAX_HOP ) {
       return p_msg;
@@ -680,8 +679,8 @@ implementation {
     
     /* if the received RREQ is already received one, it will be ignored */
     if( !is_rreq_cached( aodv_hdr ) ) {
-      dbg("AODV_DBG", "%s\t AODV: ReceiveRREQ.receive() already received one\n", 
-                                                             sim_time_string());
+      printf( "%s\t AODV: ReceiveRREQ.receive() already received one\n", 
+                                                             "");
       return p_msg;
     }
     
@@ -729,8 +728,8 @@ implementation {
     aodv_rrep_hdr* rrep_aodv_hdr = (aodv_rrep_hdr*)(p_rrep_msg_->data);
     am_addr_t src = call AMPacket.source(p_msg);
     
-    dbg("AODV", "%s\t AODV: ReceiveRREP.receive() src: %d dest: %d \n", 
-                             sim_time_string(), aodv_hdr->src, aodv_hdr->dest);
+    printf( "%s\t AODV: ReceiveRREP.receive() src: %d dest: %d \n", 
+                             "", aodv_hdr->src, aodv_hdr->dest);
     if( aodv_hdr->src == call AMPacket.address() ) {
       add_route_table( aodv_hdr->seq, aodv_hdr->dest, src, aodv_hdr->hop );
     } else { // not to me
@@ -753,7 +752,7 @@ implementation {
   event message_t* ReceiveRERR.receive( message_t* p_msg, 
                                                  void* payload, uint8_t len ) {  // mensaje RERR recibido 
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_msg->data);
-    dbg("AODV", "%s\t AODV: ReceiveRERR.receive()\n", sim_time_string());
+    printf( "%s\t AODV: ReceiveRERR.receive()\n", "");
     del_route_table( aodv_hdr->dest );
     if( aodv_hdr->src != call AMPacket.address())
       sendRERR( aodv_hdr->dest, aodv_hdr->src, TRUE );
@@ -793,8 +792,8 @@ implementation {
     bool wasAcked = call PacketAcknowledgements.wasAcked(p_msg);
     am_addr_t dest = call AMPacket.destination(p_aodv_msg_);
     
-    dbg("AODV_DBG", "%s\t AODV: SubSend.sendDone() dest:%d src:%d wasAcked:%d\n",
-                   sim_time_string(), aodv_hdr->dest, aodv_hdr->src, wasAcked);
+    printf( "%s\t AODV: SubSend.sendDone() dest:%d src:%d wasAcked:%d\n",
+                   "", aodv_hdr->dest, aodv_hdr->src, wasAcked);
     
     send_pending_ = FALSE;
     
@@ -805,14 +804,14 @@ implementation {
       } else {
         msg_retries_--;
         if( msg_retries_ > 0 ) {
-          dbg("AODV", "%s\t AODV: SubSend.sendDone() msg was not acked, resend\n",
-                                                             sim_time_string());
+          printf( "%s\t AODV: SubSend.sendDone() msg was not acked, resend\n",
+                                                             "");
           call PacketAcknowledgements.requestAck( p_aodv_msg_ );
           call SubSend.send( dest, p_aodv_msg_, 
                                      call Packet.payloadLength(p_aodv_msg_) );
         } else {
-          dbg("AODV", "%s\t AODV: SubSend.sendDone() route may be corrupted\n", 
-                                                             sim_time_string());
+          printf( "%s\t AODV: SubSend.sendDone() route may be corrupted\n", 
+                                                             "");
           msg_pending_ = FALSE;
           del_route_table( dest );
           sendRERR( aodv_hdr->dest, aodv_hdr->src, FALSE );
@@ -830,12 +829,12 @@ implementation {
     uint8_t i;
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     
-    dbg("AODV", "%s\t AODV: SubReceive.receive() dest: %d src:%d\n",
-                    sim_time_string(), aodv_hdr->dest, aodv_hdr->src);
+    printf( "%s\t AODV: SubReceive.receive() dest: %d src:%d\n",
+                    "", aodv_hdr->dest, aodv_hdr->src);
     
     if( aodv_hdr->dest == call AMPacket.address() ) {
-      dbg("AODV", "%s\t AODV: SubReceive.receive() deliver to upper layer\n", 
-                                                             sim_time_string());
+      printf( "%s\t AODV: SubReceive.receive() deliver to upper layer\n", 
+                                                             "");
       for( i=0;i<len;i++ ) {
         p_app_msg_->data[i] = aodv_hdr->data[i];
       }
@@ -843,20 +842,19 @@ implementation {
                                                      len - AODV_MSG_HEADER_LEN );
     } else {
       am_addr_t nexthop = get_next_hop( aodv_hdr->dest );
-      dbg("AODV", "%s\t AODV: SubReceive.receive() deliver to next hop:%x\n",
-                                                  sim_time_string(), nexthop);
+      printf( "%s\t AODV: SubReceive.receive() deliver to next hop:%x\n",
+                                                  "", nexthop);
       /* If there is a next-hop for the destination of the message, 
          the message will be forwarded to the next-hop.            */
       if (nexthop != INVALID_NODE_ID) {
         forwardMSG( p_msg, nexthop, len );
-      }
-    }
+      } }
     return p_msg;
   }
   
   
   event void AODVTimer.fired() { // evento para la expiración del timer de AODV 
-    dbg("AODV_DBG2", "%s\t AODV: Timer.fired()\n", sim_time_string());
+    printf("%s\t AODV: Timer.fired()\n", "");
     if( rreq_pending_ ){
       post resendRREQ();
     }
@@ -874,7 +872,7 @@ implementation {
   
   
   event void RREQTimer.fired() { //evento donde se avisa que el tiempo del RREQ se ha acabado y se envia un RREQ
-    dbg("AODV_DBG", "%s\t AODV: RREQTimer.fired()\n", sim_time_string());
+    printf( "%s\t AODV: RREQTimer.fired()\n", "");
     sendRREQ( 0 , TRUE );
   }
   
@@ -894,8 +892,8 @@ implementation {
     for( i=0; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == INVALID_NODE_ID)
         break;
-      dbg("AODV_DBG2", "%s\t AODV: ROUTE_TABLE i: %d: dest: %d next: %d seq:%d hop: %d \n", 
-           sim_time_string(), i, route_table_[i].dest, route_table_[i].next, 
+      printf("%s\t AODV: ROUTE_TABLE i: %d: dest: %d next: %d seq:%d hop: %d \n", 
+           "", i, route_table_[i].dest, route_table_[i].next, 
                  route_table_[i].seq, route_table_[i].hop );
     }
   }
@@ -906,8 +904,8 @@ implementation {
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if(rreq_cache_[i].dest == INVALID_NODE_ID )
         break;
-      dbg("AODV_DBG2", "%s\t AODV: RREQ_CACHE i: %d: dest: %d src: %d seq:%d hop: %d \n", 
-           sim_time_string(), i, rreq_cache_[i].dest, rreq_cache_[i].src, rreq_cache_[i].seq, rreq_cache_[i].hop );
+      printf("%s\t AODV: RREQ_CACHE i: %d: dest: %d src: %d seq:%d hop: %d \n", 
+           "", i, rreq_cache_[i].dest, rreq_cache_[i].src, rreq_cache_[i].seq, rreq_cache_[i].hop );
     }
   }
 #endif
