@@ -25,7 +25,7 @@ configuration AODV {
 }
 
 implementation {
-  components AODV_M, RandomC, ActiveMessageC;
+  components AODV_M, RandomC, ActiveMessageC, LedsC;
   
   SplitControl = AODV_M.SplitControl;
   AMSend = AODV_M.AMSend;
@@ -36,7 +36,7 @@ implementation {
   AODV_M.Packet -> ActiveMessageC;
   AODV_M.PacketAcknowledgements -> ActiveMessageC;
   AODV_M.AMControl -> ActiveMessageC.SplitControl;
-  
+  AODV_M.Leds -> LedsC;
   components new AMSenderC(AM_AODV_RREQ) as MHSendRREQ, 
              new AMSenderC(AM_AODV_RREP) as MHSendRREP, 
              new AMSenderC(AM_AODV_RERR) as MHSendRERR;

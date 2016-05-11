@@ -88,7 +88,7 @@ implementation {
   void del_route_table( am_addr_t dest );
   am_addr_t get_next_hop( am_addr_t dest );
   
-#if AODV_DEBUG
+#ifdef AODV_DEBUG
   void print_route_table();
   void print_rreq_cache();
 #endif
@@ -574,7 +574,7 @@ implementation {
     am_addr_t nexthop = get_next_hop( addr );
     am_addr_t me = call AMPacket.address();
     
-    printf("%s\t AODV: AMSend.send() dest: %d id: %d len: %d nexthop: %d\n", addr, id, len, nexthop);
+    printf("AODV: AMSend.send() dest: %u id: %x len: %d nexthop: %u\n", id, len, nexthop);
     
     if( addr == me ) {
       return SUCCESS;
@@ -587,7 +587,7 @@ implementation {
         printf("AODV: AMSend.send() a new destination\n"); 
                                                              
         sendRREQ( addr, FALSE );
-        return SUCCESS;
+       return SUCCESS;
       }
       return FAIL;
     }
@@ -622,6 +622,10 @@ implementation {
     printf( "%s\t AODV: SendRREQ.sendDone()\n", "");
     send_pending_ = FALSE;
     rreq_pending_ = FALSE;
+    //call Leds.led0Toggle();
+    //call Leds.led1Toggle();
+    //call Leds.led2Toggle();
+
   }
   
   
@@ -854,7 +858,7 @@ implementation {
   
   
   event void AODVTimer.fired() { // evento para la expiración del timer de AODV 
-    printf("%s\t AODV: Timer.fired()\n", "");
+    //printf("%s\t AODV: Expira el timer de AODV\n", "");
     if( rreq_pending_ ){
       post resendRREQ();
     }
@@ -878,6 +882,7 @@ implementation {
   
   /***************** Defaults ****************/
   default event void AMSend.sendDone[uint8_t id](message_t* msg, error_t err) {
+
     return;
   }
   
@@ -886,13 +891,13 @@ implementation {
   }
   
   
-#if AODV_DEBUG  
+ 
   void print_route_table(){   //funcion que recorre la tabla de reenvio y la imprime 
     uint8_t i;
     for( i=0; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == INVALID_NODE_ID)
         break;
-      printf("%s\t AODV: ROUTE_TABLE i: %d: dest: %d next: %d seq:%d hop: %d \n", 
+      printf("%s\t TABLA DE RUTAS: ROUTE_TABLE i: %d: dest: %d next: %d seq:%d hop: %d \n", 
            "", i, route_table_[i].dest, route_table_[i].next, 
                  route_table_[i].seq, route_table_[i].hop );
     }
@@ -904,11 +909,11 @@ implementation {
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if(rreq_cache_[i].dest == INVALID_NODE_ID )
         break;
-      printf("%s\t AODV: RREQ_CACHE i: %d: dest: %d src: %d seq:%d hop: %d \n", 
+      printf("%s\t RREQ CACHE: RREQ_CACHE i: %d: dest: %d src: %d seq:%d hop: %d \n", 
            "", i, rreq_cache_[i].dest, rreq_cache_[i].src, rreq_cache_[i].seq, rreq_cache_[i].hop );
     }
   }
-#endif
+
 
 }
 
