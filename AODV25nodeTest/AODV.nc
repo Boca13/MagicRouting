@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2008 Junseok Kim
- * Author: Junseok Kim <jskim@usn.konkuk.ac.kr> <http://usn.konkuk.ac.kr/~jskim>
- * Date: 2008/05/30
- * Version: 0.0.1
+ * Copyright (c) MagicRouting
+ * Author: Jesús Bocanegra, David Barranco, Alberto Flores, Adrian Marcelo y Enrique Gil
+ * Date: 14/05/2016
+ * Version: 1.2
  * Published under the terms of the GNU General Public License (GPLv2).
  */
  

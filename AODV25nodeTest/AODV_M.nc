@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2008 Junseok Kim
- * Author: Junseok Kim <jskim@usn.konkuk.ac.kr> <http://usn.konkuk.ac.kr/~jskim>
- * Date: 2008/05/30
- * Version: 0.0.1
+ * Copyright (c) MagicRouting
+ * Author: Jesús Bocanegra, David Barranco, Alberto Flores, Adrian Marcelo y Enrique Gil
+ * Date: 14/05/2016
+ * Version: 1.2
  * Published under the terms of the GNU General Public License (GPLv2).
  */
 
@@ -93,7 +93,11 @@ implementation {
   void print_rreq_cache();
 #endif
   
-  command error_t SplitControl.start() {  // comienzo del programa, llena las tablas con los valores por defecto e inicia el modulo de radio 
+
+  //--------------------------------------------------------------------------------------------------------------------------------
+  //  SplitControl.start: Comienzo del programa, llena las tablas con los valores por defecto e inicia el modulo de radio 
+  //--------------------------------------------------------------------------------------------------------------------------------
+  command error_t SplitControl.start() {
     int i;
     
     p_rreq_msg_     = &rreq_msg_;
@@ -119,15 +123,19 @@ implementation {
     call AMControl.start();
     
     return SUCCESS;
-  } // start
+  }
   
-  
+  //--------------------------------------------------------------------------------------------------------------------------------
+  //  SplitControl.stop: "FALTA POR COMENTAR"
+  //--------------------------------------------------------------------------------------------------------------------------------
   command error_t SplitControl.stop() {
     call AMControl.stop();
     return SUCCESS;
   }
   
-  
+  //--------------------------------------------------------------------------------------------------------------------------------
+  //  AMControl.startDone: "FALTA POR COMENTAR"
+  //--------------------------------------------------------------------------------------------------------------------------------
   event void AMControl.startDone( error_t e ) {
     if ( e == SUCCESS ) {
       call AODVTimer.startPeriodic( AODV_DEFAULT_PERIOD );
@@ -137,55 +145,54 @@ implementation {
     }
   }
   
-  
+  //--------------------------------------------------------------------------------------------------------------------------------
+  //  AMControl.stopDone: "FALTA POR COMENTAR"
+  //--------------------------------------------------------------------------------------------------------------------------------
   event void AMControl.stopDone(error_t e){
     call AODVTimer.stop();
     signal SplitControl.stopDone(e);
   }
   
-  
-  //--------------------------------------------------------------------------			Metodo cuya finalidad es enviar un mensaje de difusion para encontrar en camino hacia el destino
-  //  sendRREQ: This broadcasts the RREQ to find the path from the source to            
-  //  the destination.
-  //--------------------------------------------------------------------------
-  bool sendRREQ( am_addr_t dest, bool forward ) {  //Parametros de entrada -> dirección de destino (deberiamos cambiarlo por in INT) 
-    aodv_rreq_hdr* aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data); // se crea el paquete a enviar
+  //--------------------------------------------------------------------------------------------------------------------------------
+  //  sendRREQ: Metodo cuya finalidad es enviar un mensaje de difusion para encontrar el camino hacia el destino.
+  //--------------------------------------------------------------------------------------------------------------------------------
+  bool sendRREQ( am_addr_t dest, bool forward ) {                         // Parametros de entrada -> dirección de destino (deberiamos cambiarlo por in INT) 
+    aodv_rreq_hdr* aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data);        // Se crea el paquete a enviar
     
     //printf( "%s\t AODV: sendRREQ() dest: %d\n", "", dest);
     
-    if( rreq_pending_ == TRUE ) {  // Si estamos esperando respuesta no hacemos nada.
+    if( rreq_pending_ == TRUE ) {                                         // Si estamos esperando respuesta no hacemos nada.
       return FALSE;
     }
     
-    if( forward == FALSE ) { // generate the RREQ for the first time (es decir, cuando se genera el paquete)
-      aodv_hdr->seq      = rreq_seq_++;  //Aumentamos numero de secuencia
-      aodv_hdr->dest     = dest; //Asginamos el destino
-      aodv_hdr->src      = call AMPacket.address();  //Asignamos la fuente del mensaje
-      aodv_hdr->hop      = 1; //En un inicio inicializamos el numero de saltos a 1
+    if( forward == FALSE ) {                                              // Generamos el RREQ por primera vez (es decir, cuando se genera el paquete)
+      aodv_hdr->seq      = rreq_seq_++;                                   // Aumentamos numero de secuencia
+      aodv_hdr->dest     = dest;                                          // Asginamos el destino
+      aodv_hdr->src      = call AMPacket.address();                       // Asignamos la fuente del mensaje
+      aodv_hdr->hop      = 1;                                             // En un inicio inicializamos el numero de saltos a 1
       add_rreq_cache( aodv_hdr->seq, aodv_hdr->dest, aodv_hdr->src, 0 );
-    } else { // forward the RREQ
-      aodv_hdr->hop++; 		//En caso de que solo debamos encaminar, solo debemos aumentar el numero de saltos
+    } else {                                                              // Enrutamos/reenviamos el RREQ
+      aodv_hdr->hop++; 		                                                // En caso de que solo debamos encaminar, solo debemos aumentar el numero de saltos
     }
     
-    if (!send_pending_) {			//Si no estamos pendiente de envio...
+    if (!send_pending_) {			                                            // Si no estamos pendiente de envio...
       if( call SendRREQ.send(TOS_BCAST_ADDR, p_rreq_msg_, 
-                                    AODV_RREQ_HEADER_LEN) == SUCCESS) {  //Intentamos enviar hasta que lo hacemos bien
+                                    AODV_RREQ_HEADER_LEN) == SUCCESS) {   // Intentamos enviar hasta que lo hacemos bien
         printf( "%s\t AODV: sendRREQ()\n", "");
-        send_pending_ = TRUE; //Nos quedamos en estado de espera
+        send_pending_ = TRUE;                                             // Nos quedamos en estado de espera
         return TRUE;
       }
     }
     
     rreq_pending_ = TRUE;   
-    rreq_retries_ = AODV_RREQ_RETRIES; //Resetea los reintentos a 3
+    rreq_retries_ = AODV_RREQ_RETRIES;                                    // Resetea los reintentos a 3
     return FALSE;
   }
   
   
-  //--------------------------------------------------------------------------
-  //  sendRREP: This forwards the RREP to the nexthop of the source of RREQ
-  //  to establish and inform the route.
-  //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------------
+  //  sendRREP: Reenvia/enruta el RREP hacia el siguiente salto del origen del RREQ para establecer e informar de la ruta.
+  //--------------------------------------------------------------------------------------------------------------------------
   bool sendRREP( am_addr_t dest, bool forward ){
     
     printf( "%s\t AODV: sendRREP() dest: %d send_pending_: %d\n", 
@@ -207,12 +214,10 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  sendRERR: If the node fails to transmit a message over the retransmission
-  //  limit, it will send RERR to the source node of the message.
-  //  Si el nodo falla al transmitir un mensaje sobre el limite de reenvios  envia un paquete del tipo RERR al origen del mismo
-  //--------------------------------------------------------------------------
-  bool sendRERR( am_addr_t dest, am_addr_t src, bool forward ){ //Creacion y envio de un paquete de route Error si falla algun reenvio 
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  sendRERR: si el nodo no consigue transmitir un mensaje antes de llegar al limite de reenvios, envia un paquete de tipo RERR al nodo origen/fuente del mensaje.
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  bool sendRERR( am_addr_t dest, am_addr_t src, bool forward ){               // Creacion y envio de un paquete de route Error si falla algun reenvio 
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_rerr_msg_->data);
     am_addr_t target;
     
@@ -223,24 +228,26 @@ implementation {
     
     target = get_next_hop( src );
     
-    if (!send_pending_) {				//si no estamos pendiente de envio 
-      if( call SendRERR.send(target, p_rerr_msg_, AODV_RERR_HEADER_LEN)) { //
+    if (!send_pending_) {				                                             // Si no estamos pendiente de envio...
+      if( call SendRERR.send(target, p_rerr_msg_, AODV_RERR_HEADER_LEN)) {   // ... y "no se que hace esa funcion"
         printf( "%s\t AODV: sendRREQ() to %d\n", "", target);
-        send_pending_ = TRUE;
+        send_pending_ = TRUE;                                                // "supongo que enviamos el mensaje de error"
         return TRUE;
       }
     }
     
-    rerr_pending_ = TRUE;			//esperamos la respuesta del nodo origen del paquete primero 
+    rerr_pending_ = TRUE;			                                               // Esperamos la respuesta del nodo origen del paquete primero 
     rerr_retries_ = AODV_RERR_RETRIES;
     return FALSE;
   }
   
-  
-  task void resendRREQ() { //renvio de un  router discovery
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  resendRREQ: "FALTA POR EXPLICAR QUE HACE"
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  task void resendRREQ() {                                // Reenvio de un  router discovery
     printf( "%s\t AODV: resendRREQ()\n", "");
     
-    if(rreq_retries_ <= 0){   //intentamos renviar el mensaje Route discovery hasta que baja a 0 
+    if(rreq_retries_ <= 0){                               // Intentamos renviar el mensaje Route discovery hasta que baja a 0 
       rreq_pending_ = FALSE;
       return;
     }
@@ -254,10 +261,12 @@ implementation {
     }
   }
   
-  
-  task void resendRREP(){		//Renvio de un Route replay
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  resendRREP: "FALTA POR EXPLICAR QUE HACE MEJOR"
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  task void resendRREP(){		                                           // Renvio de un Route replay (RREP)
     am_addr_t dest = call AMPacket.destination( p_rrep_msg_ );
-    if( rrep_retries_ == 0 ) {	//intentamos renviar el mensaje Route replay hasta que baja a 0 
+    if( rrep_retries_ == 0 ) {	                                       // Intentamos renviar el mensaje Route replay hasta que baja a 0 
       rrep_pending_ = FALSE;
       return;
     }
@@ -274,10 +283,12 @@ implementation {
     }
   }
   
-  
-  task void resendRERR(){		//Renvio de un Route error 
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  resendRRER: "FALTA POR EXPLICAR QUE HACE MEJOR"
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  task void resendRERR(){		                                           // Renvio de un Route error (RERR) 
     am_addr_t dest = call AMPacket.destination( p_rerr_msg_ );
-    if( rerr_retries_ == 0 ) {	//intentamos renviar el mensaje Route error hasta que baja a 0 
+    if( rerr_retries_ == 0 ) {	                                       // Intentamos renviar el mensaje Route error hasta que baja a 0 
       rerr_pending_ = FALSE;
       return;
     }
@@ -295,18 +306,17 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  resendMSG: This is triggered by the timer. If the forward_retries_ equals
-  //  zero, the retransmission will be canceled. Or, the cached message will
-  //  be retransmitted.
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  //  resendMSG: está función se desencadena cuando vence el temporizador correspondiente. Si el número de reenvíos posibles llega a 0, 
+  //  la transmisión será cancelada. Si no, el mensaje en caché (almacenado) será retransmitido.
+  //----------------------------------------------------------------------------------------------------------------------------------------------
   void resendMSG() {
     if( msg_retries_ == 0 ) {
       msg_pending_ = FALSE;
       return;
     }
     msg_retries_--;
-    call PacketAcknowledgements.requestAck( p_aodv_msg_ );  //  transmite el mensaje y lo reintenrta hasta que recibe el ack del nodo destino 
+    call PacketAcknowledgements.requestAck( p_aodv_msg_ );                          // Transmite el mensaje y lo reintenrta hasta que recibe el ack del nodo destino 
     if( !send_pending_ ) {
       if( call SubSend.send( call AMPacket.destination(p_aodv_msg_),
                         p_aodv_msg_,
@@ -318,8 +328,10 @@ implementation {
     }
   }
   
-  
-  uint8_t get_rreq_cache_index( am_addr_t src, am_addr_t dest ){   //devuelve el valor del indice del vector de la tabla de reenvio 
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  //  get_rreq_cache_index: función que devuelve el valor del indice del vector de la tabla de reenvio
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  uint8_t get_rreq_cache_index( am_addr_t src, am_addr_t dest ){ 
     int i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if( rreq_cache_[i].src == src && rreq_cache_[i].dest == dest ) {
@@ -329,7 +341,9 @@ implementation {
     }
   }
   
-  
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  //  is_rreq_cached: "FALTA POR EXPLICAR BIEN QUE HACE LA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------
   bool is_rreq_cached( aodv_rreq_hdr* rreq_hdr ) {
     int i;
     
@@ -340,7 +354,7 @@ implementation {
       if( rreq_cache_[i].src == rreq_hdr->src && rreq_cache_[i].dest == rreq_hdr->dest ) {
         if( rreq_cache_[i].seq < rreq_hdr->seq || 
            ( rreq_cache_[i].seq == rreq_hdr->seq && rreq_cache_[i].hop > rreq_hdr->hop )) {
-          // this is a newer rreq
+    // Esto es un nuevo RREQ
 	  return TRUE;
         } else {
           return FALSE;
@@ -348,10 +362,12 @@ implementation {
       }
     }
     return TRUE;
-  } //
+  }
   
-  
-  bool add_rreq_cache( uint8_t seq, am_addr_t dest, am_addr_t src, uint8_t hop ) {  // añade una fila a la tabla de reenvio del nodo  o la actualiza
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  //  add_rreq_cache: esta función añade una fila a la tabla de reenvio del nodo o la actualiza
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  bool add_rreq_cache( uint8_t seq, am_addr_t dest, am_addr_t src, uint8_t hop ) {
     uint8_t i;
     uint8_t id = AODV_RREQ_CACHE_SIZE;
     
@@ -364,7 +380,7 @@ implementation {
       break;
     }
     
-    if( id != AODV_RREQ_CACHE_SIZE ) {											//actualiza la fila de la cache si ya tiene una entrada para el par origen-destino 
+    if( id != AODV_RREQ_CACHE_SIZE ) {											                 // Actualiza la fila de la cache si ya tiene una entrada para el par origen-destino 
       if( rreq_cache_[i].src == src && rreq_cache_[i].dest == dest ) {
         if( rreq_cache_[id].seq < seq || rreq_cache_[id].hop > hop ) {
           rreq_cache_[id].seq = seq;
@@ -373,7 +389,7 @@ implementation {
           return TRUE;
         }
       }
-    } else if( i != AODV_RREQ_CACHE_SIZE ) {									// nueva entrada en la cache
+    } else if( i != AODV_RREQ_CACHE_SIZE ) {									               // Nueva entrada en la caché
       rreq_cache_[i].seq  = seq;
       rreq_cache_[i].dest = dest;
       rreq_cache_[i].src  = src;
@@ -387,7 +403,10 @@ implementation {
   }
   
   
-  void del_rreq_cache( uint8_t id ) {								// borra la fila de la cache anulando sus valores y poniendolos por defecto 
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  //  del_rreq_cache: esta función borra la fila de la cache anulando sus valores y poniendolos por defecto 
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  void del_rreq_cache( uint8_t id ) {
     uint8_t i;
     
     for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {
@@ -406,86 +425,82 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  update_rreq_cache: This is triggered periodically by the timer.
-  //  If the ttl of a rreq_cache entity equals to zero, the entity will be 
-  //  removed.
-  //--------------------------------------------------------------------------
-  task void update_rreq_cache() {									//si el timer de la entrada se vuelve 0 llama a del_rreq_cache  y la borra 
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  update_rreq_cache: esta función es llamada periodicamente por el temporizador. Si el valor del TTL de una entidad "rreq_cache" es 0, la entidad será eliminada
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  task void update_rreq_cache() {
     uint8_t i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE-1 ; i++ ) {
-      if( rreq_cache_[i].dest == INVALID_NODE_ID )
-	break;
-      else if( rreq_cache_[i].ttl-- == 0 )
-        del_rreq_cache(i);		//borra el elemento de la cache de route request
+      if( rreq_cache_[i].dest == INVALID_NODE_ID ){
+	      break;                                          // Salimos
+      }
+      else if( rreq_cache_[i].ttl-- == 0 ){
+        del_rreq_cache(i);		                          // Borramos el elemento de la cache de route request
+      }
     }
   }
   
   
-//--------------------------------------------------------------------------
-  //  get_route_table_index: Return the index which is correspoing to
-  //  the destination
-  //Devuelve el indice de la tabla correspondiente al destino
-  //--------------------------------------------------------------------------
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  get_route_table_index: función que devuelve el índice asociado al destino del mensaje
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   uint8_t get_route_table_index( am_addr_t dest ) {
     int i;
-    for(i=0; i< AODV_ROUTE_TABLE_SIZE; i++) {
-      if(route_table_[i].dest == dest)  // Recorre recursivamente la tabla de enrutamiento buscando el identifcador del destino y lo devuelve
+    for(i=0; i< AODV_ROUTE_TABLE_SIZE; i++) {           // Recorre recursivamente la tabla de enrutamiento buscando el identifcador del destino y lo devuelve
+      if(route_table_[i].dest == dest)  
         return i;
     }
     return INVALID_INDEX;
-  } //
+  }
   
-  //--------------------------------------------------------------------------
-  //  del_route_table:Borra una entrada de la tabla de enrutamiento
-  //--------------------------------------------------------------------------
-  void del_route_table( am_addr_t dest ) {  // Parametros de entrada -> Entrada de la tabla a borrar
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  del_route_table: función que borra una entrada de la tabla de enrutamiento
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  void del_route_table( am_addr_t dest ) {                       // Parametros de entrada -> Entrada de la tabla a borrar
     uint8_t i;
-    uint8_t id = get_route_table_index( dest ); //Se obtiene el identificador en la tabla
+    uint8_t id = get_route_table_index( dest );                  // Se obtiene el identificador en la tabla
     
     printf( "%s\t AODV: del_route_table() dest:%d\n",
                                        "", dest);
     
-    for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {    //Se recorre recursivamente la tabla de enrutamiento...
-      if(route_table_[i+1].dest == INVALID_NODE_ID) {   //...cuando se encuentra la entrada salimos del for...
+    for(i = id; i< AODV_ROUTE_TABLE_SIZE-1; i++) {               // Se recorre recursivamente la tabla de enrutamiento...
+      if(route_table_[i+1].dest == INVALID_NODE_ID) {            // ...cuando se encuentra la entrada salimos del for...
         break;
       }
       route_table_[i] = route_table_[i+1];
     }
     
-    route_table_[i].dest = INVALID_NODE_ID;   //Se cambia en dicha entrada los valores de destino y siguiente salto a un numero invalido predefinidio
+    route_table_[i].dest = INVALID_NODE_ID;                      // Se cambia en dicha entrada los valores de destino y siguiente salto a un numero invalido predefinidio
     route_table_[i].next = INVALID_NODE_ID;
-    route_table_[i].seq  = 0;				  //Se cambia en dicha entrada los valores de numero de secuencia y numero de saltos a 0
+    route_table_[i].seq  = 0;				                             // Se cambia en dicha entrada los valores de numero de secuencia y numero de saltos a 0
     route_table_[i].hop  = 0;
     
-    print_route_table(); //Muestra la tabla de enrutamiento
+    print_route_table();                                         // Muestra la tabla de enrutamiento
   }
   
   
-	//--------------------------------------------------------------------------
-  //  add_route_table: If a route information is a new or fresh one, it is 
-  //  added to the route table.
-  //  Si una informacion de ruta es nueva o mas actualizada que otra, es añadida a la tabla de enrutamiento
-  //(Falta código por mirar)
-  //--------------------------------------------------------------------------
-  bool add_route_table( uint8_t seq, am_addr_t dest, am_addr_t nexthop, uint8_t hop ) { //Parametros de entrada-> Numero de secuencia, destino,siguiente salto y numero de saltos
+	//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  add_route_table: función que si recibe información de una nueva ruta o sobre la actualización de la información de una ruta ya existente, 
+  //  la añade a la tabla de enrutamiento (Falta código por mirar).
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  bool add_route_table( uint8_t seq, am_addr_t dest, am_addr_t nexthop, uint8_t hop ) {   // Parametros de entrada-> Numero de secuencia, destino,siguiente salto y numero de saltos
     uint8_t i;
-    uint8_t id = AODV_ROUTE_TABLE_SIZE; //Por defecto 10
+    uint8_t id = AODV_ROUTE_TABLE_SIZE;                                                   // Por defecto 10
     
     printf( "%s\t AODV: add_route_table() seq:%d dest:%d next:%d hop:%d\n",
                                     "", seq, dest, nexthop, hop);
 									
     for( i=0 ; i < AODV_ROUTE_TABLE_SIZE-1 ; i++ ) {
-      if( route_table_[i].dest == dest ) {   //Primero recorre la tabla recursivamente para buscar si el destino ya existe dentro de la tabla
+      if( route_table_[i].dest == dest ) {                                                // Primero recorre la tabla recursivamente para buscar si el destino ya existe dentro de la tabla
         id = i;
         break;
       }
-      if( route_table_[i].dest == INVALID_NODE_ID ) {   //Si encuentra una entrada donde el destino es no valido, sale del bucle
+      if( route_table_[i].dest == INVALID_NODE_ID ) {                                     // Si encuentra una entrada donde el destino es no valido, sale del bucle
         break;
       }
     }
     
-    if( id != AODV_ROUTE_TABLE_SIZE ) {		// si el siguiente salto es igual a uno existente y cambia el numero del salto o la seq se actualiza 
+    if( id != AODV_ROUTE_TABLE_SIZE ) {		                                                // Si el siguiente salto es igual a uno existente y cambia el numero del salto o la seq se actualiza 
       if( route_table_[id].next == nexthop ) {
         if( route_table_[id].seq < seq || route_table_[id].hop > hop ) {
           route_table_[id].seq = seq;
@@ -494,7 +509,7 @@ implementation {
           return TRUE;
         }
       }
-    } else if( i != AODV_ROUTE_TABLE_SIZE ) {   // si no exite la entrada en la tabla de enrutamiento genera una nueva entrada 
+    } else if( i != AODV_ROUTE_TABLE_SIZE ) {                                             // Si no exite la entrada en la tabla de enrutamiento genera una nueva entrada 
       route_table_[i].seq  = seq;
       route_table_[i].dest = dest;
       route_table_[i].next = nexthop;
@@ -505,13 +520,11 @@ implementation {
     return FALSE;
     print_route_table();
   }
-  
-  
-  //--------------------------------------------------------------------------
-  //  get_next_hop: Return the nexthop node address of the message if the 
-  //  address exists in the route table.
-  //--------------------------------------------------------------------------
-  am_addr_t get_next_hop( am_addr_t dest ) {    // comprueba el destino y devuelve el siguiente salto
+
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  get_next_hop: función que devuelve la dirección del siguiente nodo (siguiente salto) al que enviar el mensaje si la dirección existe en la tabla de enrutamiento.
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  am_addr_t get_next_hop( am_addr_t dest ) {                                  // Comprueba el destino y devuelve el siguiente salto
     int i;
     for( i=0 ; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == dest) {
@@ -521,12 +534,10 @@ implementation {
     return INVALID_NODE_ID;
   }
   
-  
-  //--------------------------------------------------------------------------
-  //  forwardMSG: The node forwards a message to the next-hop node if the 
-  //  target of the message is not itself.  //Si recibe un mensaje y no es el objetivo lo reenvia al siguiente salto
-  //--------------------------------------------------------------------------
-  error_t forwardMSG( message_t* p_msg, am_addr_t nexthop, uint8_t len ) {  //
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  forwardMSG: el nodo reenvia/encamina un mensaje al siguiente nodo (salto) si el objetivo del mensaje no es él mismo 
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  error_t forwardMSG( message_t* p_msg, am_addr_t nexthop, uint8_t len ) {
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     aodv_msg_hdr* msg_aodv_hdr = (aodv_msg_hdr*)(p_aodv_msg_->data);
     uint8_t i;
@@ -561,13 +572,9 @@ implementation {
     return SUCCESS;
   }
   
-  
-  //--------------------------------------------------------------------------
-  //  AMSend.send: If there is a route to the destination, the message will be 
-  //  sent to the next-hop node for the destination. Or, the node will broadcast
-  //  the RREQ.		Si recibe un mensaje y es el destino manda un SUCCESS
-  //  si no lo es manda el mensaje RREQ 
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  AMSend.send: si existe una ruta al destino, el mensaje será enviado al siguiente salto (nodo) asociado a dicho destino. Si no, el nodo reenviará el mensaje RREQ en difusión. 
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command error_t AMSend.send[am_id_t id](am_addr_t addr, message_t* msg, uint8_t len) {
     uint8_t i;
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_aodv_msg_->data);
@@ -579,9 +586,7 @@ implementation {
     if( addr == me ) {
       return SUCCESS;
     }
-    /* If the next-hop node for the destination does not exist, the RREQ will be
-       broadcasted  Manda un mensaje RREQ si cuando llega el mensaje no es el destino
-	   y tampoco posee dicha entrada en su tabla de reenvio */ 
+    /* Si el siguiente salto (nodo) para el destino fiajado no existe, el RREQ será difundido */ 
     if( nexthop == INVALID_NODE_ID ) {
       if( !rreq_pending_ ) {
         printf("AODV: AMSend.send() a new destination\n"); 
@@ -591,8 +596,7 @@ implementation {
       }
       return FAIL;
     }
-    printf( "%s\t AODV: AMSend.send() there is a route to %d\n", 
-                                                        "", addr);
+    printf( "%s\t AODV: AMSend.send() there is a route to %d\n", "", addr);
     aodv_hdr->dest = addr;
     aodv_hdr->src  = me;
     aodv_hdr->app  = id;
@@ -613,11 +617,9 @@ implementation {
     return FAIL;
   }
   
-  
-  //--------------------------------------------------------------------------
-  //  SendRREQ.sendDone: If the RREQ transmission is finished, it will release
-  //  the RREQ and SEND pendings. // si el mensaje RREQ se ha enviado correctamente libera las esperas 
-  //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  SendRREQ.sendDone: función que hace que, si el mensaje RREQ se ha transmitido correctamente, se liberen los mensajes RREQ y SEND pendientes
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
   event void SendRREQ.sendDone(message_t* p_msg, error_t e) {
     printf( "%s\t AODV: SendRREQ.sendDone()\n", "");
     send_pending_ = FALSE;
@@ -625,14 +627,11 @@ implementation {
     //call Leds.led0Toggle();
     //call Leds.led1Toggle();
     //call Leds.led2Toggle();
-
   }
   
-  
-  //--------------------------------------------------------------------------
-  //  SendRREP.sendDone: If the RREP transmission is finished, it will release
-  //  the RREP and SEND pendings. // si el mensaje RREP se ha enviado correctamente libera las esperas
-  //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  SendRREP.sendDone: función que hace que, si el mensaje RREP se ha transmitido correctamente, se liberen los mensajes RREP y SEND pendientes
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
   event void SendRREP.sendDone(message_t* p_msg, error_t e) {
     printf( "%s\t AODV: SendRREP.sendDone()\n", "");
     send_pending_ = FALSE;
@@ -643,10 +642,9 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  SendRERR.sendDone: If the RERR transmission is finished, it will release
-  //  the RERR and SEND pendings.  // si el mensaje RERR se ha enviado correctamente libera las esperas
-  //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  SendRRER.sendDone: función que hace que, si el mensaje RRER se ha transmitido correctamente, se liberen los mensajes RRER y SEND pendientes
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------
   event void SendRERR.sendDone(message_t* p_msg, error_t e) {
     printf( "%s\t AODV: SendRERR.sendDone() \n", "");
     send_pending_ = FALSE;
@@ -657,14 +655,11 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  ReceiveRREQ.receive: If the destination of the RREQ is me, the node will
-  //  send the RREP back to establish the reverse route. Or, the node forwards
-  //  the RREQ to the nextt-hop node. // Si recibe un RREQ y es el destino envia 
-  //  devuelta un RREP en caso contrario envia el RREQ al siguiente salto
-  //--------------------------------------------------------------------------
-  event message_t* ReceiveRREQ.receive( message_t* p_msg, 
-                                                 void* payload, uint8_t len ) {
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  ReceiveRREQ.receive: si el destino del mensaje RREQ soy yo, enviaré el RREP de vuelta para establecer la ruta inversa. Si no, reenviaré/enrutaré el 
+  //  mensaje RREQ al siguiente salto (nodo).
+  //-----------------------------------------------------------------------------------------------------------------------------------------------------------
+  event message_t* ReceiveRREQ.receive( message_t* p_msg, void* payload, uint8_t len ) {
     bool cached = FALSE;
     bool added  = FALSE;
     
@@ -674,28 +669,26 @@ implementation {
     aodv_rreq_hdr* rreq_aodv_hdr = (aodv_rreq_hdr*)(p_rreq_msg_->data);
     aodv_rrep_hdr* rrep_aodv_hdr = (aodv_rrep_hdr*)(p_rrep_msg_->data);
     
-    printf( "%s\t AODV: ReceiveRREQ.receive() src:%d dest: %d \n",
-                     "", aodv_hdr->src, aodv_hdr->dest);
+    printf( "%s\t AODV: ReceiveRREQ.receive() src:%d dest: %d \n", "", aodv_hdr->src, aodv_hdr->dest);
     
     if( aodv_hdr->hop > AODV_MAX_HOP ) {
       return p_msg;
     }
     
-    /* if the received RREQ is already received one, it will be ignored */
+    /* Si el mensaje RREQ recibido ya lo he recibido anteriormente, será ignorado */
     if( !is_rreq_cached( aodv_hdr ) ) {
-      printf( "%s\t AODV: ReceiveRREQ.receive() already received one\n", 
-                                                             "");
+      printf( "%s\t AODV: ReceiveRREQ.receive() already received one\n", "");
       return p_msg;
     }
     
-    /* add the route information into the route table */
+    /* Añado la información de la ruta en la tabla de enrutamiento */
     add_route_table( aodv_hdr->seq, src, src, 1 );
     added = add_route_table( aodv_hdr->seq, aodv_hdr->src, src, aodv_hdr->hop );
     
     cached = add_rreq_cache( aodv_hdr->seq, aodv_hdr->dest, aodv_hdr->src, aodv_hdr->hop );
     
     
-    /* if the destination of the RREQ is me, the node will send the RREP */
+    /* Si el destino del mensaje RREQ soy yo, enviaré el mensaje de RREP */
     if( aodv_hdr->dest == me && added ) {
       rrep_aodv_hdr->seq  = aodv_hdr->seq;
       rrep_aodv_hdr->dest = aodv_hdr->dest;
@@ -705,7 +698,7 @@ implementation {
       return p_msg;
     }
     
-    // not for me
+    // Si el mensaje RREQ no es para mi...
     if( !rreq_pending_ && aodv_hdr->src != me && cached ) {
       // forward RREQ
       rreq_aodv_hdr->seq  = aodv_hdr->seq;
@@ -720,23 +713,19 @@ implementation {
   }
   
   
-  //--------------------------------------------------------------------------
-  //  ReceiveRREP.receive: If the source address of the RREP is me, it means
-  //  the route to the destination is established. Or, the node forwards
-  //  the RREP to the next-hop node. // Si recibe un RREP y es el destino 
-  //  se ha establecidouna ruta en caso contrario envia el RREP al siguiente salto
-  //--------------------------------------------------------------------------
-  event message_t* ReceiveRREP.receive( message_t* p_msg, 
-                                                 void* payload, uint8_t len ) {
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  ReceiveRREP.receive: si la dirección origen de un mensaje RREP soy yo, significa que la ruta hacia el destino está establecida. Si no, debo enrutar/reenviar el
+  //  mensaje RREP hacia el siguiente salto (nodo).
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  event message_t* ReceiveRREP.receive( message_t* p_msg, void* payload, uint8_t len ) {
     aodv_rrep_hdr* aodv_hdr = (aodv_rrep_hdr*)(p_msg->data);
     aodv_rrep_hdr* rrep_aodv_hdr = (aodv_rrep_hdr*)(p_rrep_msg_->data);
     am_addr_t src = call AMPacket.source(p_msg);
     
-    printf( "%s\t AODV: ReceiveRREP.receive() src: %d dest: %d \n", 
-                             "", aodv_hdr->src, aodv_hdr->dest);
-    if( aodv_hdr->src == call AMPacket.address() ) {
+    printf( "%s\t AODV: ReceiveRREP.receive() src: %d dest: %d \n", "", aodv_hdr->src, aodv_hdr->dest);
+    if( aodv_hdr->src == call AMPacket.address() ) { // Si soy el destino del mensaje RREP...
       add_route_table( aodv_hdr->seq, aodv_hdr->dest, src, aodv_hdr->hop );
-    } else { // not to me
+    } else { // Si no soy yo el destino...
       am_addr_t dest = get_next_hop( aodv_hdr->src );
       if( dest != INVALID_NODE_ID ) {
         // forward RREP
@@ -752,9 +741,10 @@ implementation {
     return p_msg;
   }
   
-  
-  event message_t* ReceiveRERR.receive( message_t* p_msg, 
-                                                 void* payload, uint8_t len ) {  // mensaje RERR recibido 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  ReceiveRERR.receive: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  event message_t* ReceiveRERR.receive( message_t* p_msg, void* payload, uint8_t len ) {
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_msg->data);
     printf( "%s\t AODV: ReceiveRERR.receive()\n", "");
     del_route_table( aodv_hdr->dest );
@@ -764,40 +754,52 @@ implementation {
     return p_msg;
   }
   
-  
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  AMSend.cancel: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command error_t AMSend.cancel[am_id_t id](message_t* msg) { 
     return call SubSend.cancel(msg);
   }
   
-  
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  AMSend.maxPayloadLength: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command uint8_t AMSend.maxPayloadLength[am_id_t id]() {
     return call Packet.maxPayloadLength();
   }
   
-  
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  AMSend.getPayload: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command void* AMSend.getPayload[am_id_t id](message_t* m, uint8_t len) {
     return call Packet.getPayload(m, 0);
   }
   
   /*
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  Receive.getPayload: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command void * Receive.getPayload[uint8_t am](message_t *msg, uint8_t *len){
     return call Packet.getPayload(msg, len);
   }
   
-  
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  Receive.payloadLength: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command uint8_t Receive.payloadLength[uint8_t am](message_t *msg){
     return call Packet.payloadLength(msg);
   }
   */
   
-  /***************** SubSend Events ****************/  // Metodo para el envio real de los mensajes 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  SubSend.sendDone: evento para el envio real de los mensajes
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   event void SubSend.sendDone(message_t* p_msg, error_t e) {
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     bool wasAcked = call PacketAcknowledgements.wasAcked(p_msg);
     am_addr_t dest = call AMPacket.destination(p_aodv_msg_);
     
-    printf( "%s\t AODV: SubSend.sendDone() dest:%d src:%d wasAcked:%d\n",
-                   "", aodv_hdr->dest, aodv_hdr->src, wasAcked);
+    printf( "%s\t AODV: SubSend.sendDone() dest:%d src:%d wasAcked:%d\n", "", aodv_hdr->dest, aodv_hdr->src, wasAcked);
     
     send_pending_ = FALSE;
     
@@ -808,14 +810,11 @@ implementation {
       } else {
         msg_retries_--;
         if( msg_retries_ > 0 ) {
-          printf( "%s\t AODV: SubSend.sendDone() msg was not acked, resend\n",
-                                                             "");
+          printf( "%s\t AODV: SubSend.sendDone() msg was not acked, resend\n", "");
           call PacketAcknowledgements.requestAck( p_aodv_msg_ );
-          call SubSend.send( dest, p_aodv_msg_, 
-                                     call Packet.payloadLength(p_aodv_msg_) );
+          call SubSend.send( dest, p_aodv_msg_, call Packet.payloadLength(p_aodv_msg_) );
         } else {
-          printf( "%s\t AODV: SubSend.sendDone() route may be corrupted\n", 
-                                                             "");
+          printf( "%s\t AODV: SubSend.sendDone() route may be corrupted\n", "");
           msg_pending_ = FALSE;
           del_route_table( dest );
           sendRERR( aodv_hdr->dest, aodv_hdr->src, FALSE );
@@ -826,38 +825,36 @@ implementation {
     }
   }
   
-  
-  /***************** SubReceive Events ****************/  // Metodo para la recepcion real de los mensajes 
-  event message_t* SubReceive.receive( message_t* p_msg, 
-                                                 void* payload, uint8_t len ) {
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  SubSend.sendDone: evento para la recepcion real de los mensajes
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  event message_t* SubReceive.receive( message_t* p_msg, void* payload, uint8_t len ) {
     uint8_t i;
     aodv_msg_hdr* aodv_hdr = (aodv_msg_hdr*)(p_msg->data);
     
-    printf( "%s\t AODV: SubReceive.receive() dest: %d src:%d\n",
-                    "", aodv_hdr->dest, aodv_hdr->src);
+    printf( "%s\t AODV: SubReceive.receive() dest: %d src:%d\n", "", aodv_hdr->dest, aodv_hdr->src);
     
     if( aodv_hdr->dest == call AMPacket.address() ) {
-      printf( "%s\t AODV: SubReceive.receive() deliver to upper layer\n", 
-                                                             "");
+      printf( "%s\t AODV: SubReceive.receive() deliver to upper layer\n", "");
       for( i=0;i<len;i++ ) {
         p_app_msg_->data[i] = aodv_hdr->data[i];
       }
-      p_msg = signal Receive.receive[aodv_hdr->app]( p_app_msg_, p_app_msg_->data, 
-                                                     len - AODV_MSG_HEADER_LEN );
+      p_msg = signal Receive.receive[aodv_hdr->app]( p_app_msg_, p_app_msg_->data, len - AODV_MSG_HEADER_LEN );
     } else {
       am_addr_t nexthop = get_next_hop( aodv_hdr->dest );
-      printf( "%s\t AODV: SubReceive.receive() deliver to next hop:%x\n",
-                                                  "", nexthop);
-      /* If there is a next-hop for the destination of the message, 
-         the message will be forwarded to the next-hop.            */
+      printf( "%s\t AODV: SubReceive.receive() deliver to next hop:%x\n", "", nexthop);
+      /* Si hay un siguiente nodo de salto hacia el destino de un mensaje, el mensaje será reenviado/enrutado hacia dicho siguiente salto */
       if (nexthop != INVALID_NODE_ID) {
         forwardMSG( p_msg, nexthop, len );
-      } }
+      } 
+    }
     return p_msg;
   }
   
-  
-  event void AODVTimer.fired() { // evento para la expiración del timer de AODV 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  AODVTimer.fired: evento para la expiración del timer de AODV 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  event void AODVTimer.fired() {
     //printf("%s\t AODV: Expira el timer de AODV\n", "");
     if( rreq_pending_ ){
       post resendRREQ();
@@ -874,15 +871,18 @@ implementation {
     post update_rreq_cache();
   }
   
-  
-  event void RREQTimer.fired() { //evento donde se avisa que el tiempo del RREQ se ha acabado y se envia un RREQ
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  RREQTimer.fired: evento donde se avisa que el tiempo del RREQ se ha acabado y se envia un RREQ
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  event void RREQTimer.fired() {
     printf( "%s\t AODV: RREQTimer.fired()\n", "");
     sendRREQ( 0 , TRUE );
   }
   
-  /***************** Defaults ****************/
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  defaults: "EXPLICAR BIEN QUE ES ESTO"
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   default event void AMSend.sendDone[uint8_t id](message_t* msg, error_t err) {
-
     return;
   }
   
@@ -890,9 +890,10 @@ implementation {
     return msg;
   }
   
-  
- 
-  void print_route_table(){   //funcion que recorre la tabla de reenvio y la imprime 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  print_route_table: Funcion que recorre la tabla de reenvio y la imprime
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  void print_route_table(){    
     uint8_t i;
     for( i=0; i < AODV_ROUTE_TABLE_SIZE ; i++ ) {
       if(route_table_[i].dest == INVALID_NODE_ID)
@@ -903,8 +904,10 @@ implementation {
     }
   }
   
-  
-  void print_rreq_cache() { //funcion que recorre la tabla de rreq y la imprime 
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //  print_rreq_cache: Funcion que recorre la tabla de rreq y la imprime
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  void print_rreq_cache() { 
     uint8_t i;
     for( i=0 ; i < AODV_RREQ_CACHE_SIZE ; i++ ) {
       if(rreq_cache_[i].dest == INVALID_NODE_ID )
@@ -913,7 +916,5 @@ implementation {
            "", i, rreq_cache_[i].dest, rreq_cache_[i].src, rreq_cache_[i].seq, rreq_cache_[i].hop );
     }
   }
-
-
 }
 

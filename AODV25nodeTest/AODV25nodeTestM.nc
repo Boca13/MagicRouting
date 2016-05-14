@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2008 Junseok Kim
- * Author: Junseok Kim <jskim@usn.konkuk.ac.kr> <http://usn.konkuk.ac.kr/~jskim>
- * Date: 2008/05/30
- * Version: 0.0.1
+ * Copyright (c) MagicRouting
+ * Author: Jesús Bocanegra, David Barranco, Alberto Flores, Adrian Marcelo y Enrique Gil
+ * Date: 14/05/2016
+ * Version: 1.2
  * Published under the terms of the GNU General Public License (GPLv2).
  */
+
  #include "printf.h"
+
 module AODV25nodeTestM {
   uses {
     interface Boot;
@@ -67,7 +69,7 @@ implementation {
   }
   
   event void SplitControl.stopDone(error_t err) {
-    // do nothing
+    // No hacemos nada
   }
   
   
@@ -76,16 +78,13 @@ implementation {
     call Leds.led1Toggle();    
     printf("/t TOS NODE ID: %x\n",TOS_NODE_ID );
     call AMSend.send(dest, p_pkt, 5);    
-    
   }
   
   
   event void AMSend.sendDone(message_t* bufPtr, error_t error) {
     printf("%s\t\t Main send Done\n", "");
     call Leds.led0Toggle();
-    
   }
-  
   
   event message_t* Receive.receive(message_t* bufPtr, void* payload, uint8_t len) {
     printf("\t\t\t LONGITUD: %d ",len);
