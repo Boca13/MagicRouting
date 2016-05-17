@@ -126,7 +126,7 @@ implementation {
   }
   
   //--------------------------------------------------------------------------------------------------------------------------------
-  //  SplitControl.stop: "FALTA POR COMENTAR"
+  //  SplitControl.stop: Funcion que apaga el módulo de radio 
   //--------------------------------------------------------------------------------------------------------------------------------
   command error_t SplitControl.stop() {
     call AMControl.stop();
@@ -134,7 +134,7 @@ implementation {
   }
   
   //--------------------------------------------------------------------------------------------------------------------------------
-  //  AMControl.startDone: "FALTA POR COMENTAR"
+  //  AMControl.startDone: Función que inicializa el modulo de radio y le añade el timer para el envio.
   //--------------------------------------------------------------------------------------------------------------------------------
   event void AMControl.startDone( error_t e ) {
     if ( e == SUCCESS ) {
@@ -242,7 +242,7 @@ implementation {
   }
   
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  resendRREQ: "FALTA POR EXPLICAR QUE HACE"
+  //  resendRREQ: Reenvia el paquete de route discovery hasta que se acaba el número de reintentos 
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
   task void resendRREQ() {                                // Reenvio de un  router discovery
     printf( "%s\t AODV: resendRREQ()\n", "");
@@ -262,7 +262,7 @@ implementation {
   }
   
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  resendRREP: "FALTA POR EXPLICAR QUE HACE MEJOR"
+  //  resendRREP: Reenvia el paquete de route replay hasta que se acaba el número de reintentos 
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
   task void resendRREP(){		                                           // Renvio de un Route replay (RREP)
     am_addr_t dest = call AMPacket.destination( p_rrep_msg_ );
@@ -284,7 +284,7 @@ implementation {
   }
   
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  resendRRER: "FALTA POR EXPLICAR QUE HACE MEJOR"
+  //  resendRRER: Reenvia el paquete de route error hasta que se acaba el número de reintentos 
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
   task void resendRERR(){		                                           // Renvio de un Route error (RERR) 
     am_addr_t dest = call AMPacket.destination( p_rerr_msg_ );
@@ -342,7 +342,7 @@ implementation {
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------
-  //  is_rreq_cached: "FALTA POR EXPLICAR BIEN QUE HACE LA FUNCION"
+  //  is_rreq_cached: función que comprueba si la entrada en la tabla caché ya está incluida
   //----------------------------------------------------------------------------------------------------------------------------------------------
   bool is_rreq_cached( aodv_rreq_hdr* rreq_hdr ) {
     int i;
@@ -742,7 +742,7 @@ implementation {
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  ReceiveRERR.receive: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  ReceiveRERR.receive: Cuando se recibe un un mensaje de Error se borra la entra de tabla de routing y se envia un mensaje de error si no es para nosotros
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   event message_t* ReceiveRERR.receive( message_t* p_msg, void* payload, uint8_t len ) {
     aodv_rerr_hdr* aodv_hdr = (aodv_rerr_hdr*)(p_msg->data);
@@ -762,14 +762,14 @@ implementation {
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  AMSend.maxPayloadLength: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  AMSend.maxPayloadLength: Funcion que devuelve el payload maximo para poder enviar un paquete
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command uint8_t AMSend.maxPayloadLength[am_id_t id]() {
     return call Packet.maxPayloadLength();
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  AMSend.getPayload: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  AMSend.getPayload: Funcion que devuelve un void  con el puntero al mensaje y al payload del mismo 
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command void* AMSend.getPayload[am_id_t id](message_t* m, uint8_t len) {
     return call Packet.getPayload(m, 0);
@@ -777,14 +777,14 @@ implementation {
   
   /*
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  Receive.getPayload: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  Receive.getPayload: Funcion que devuelve un void  con el puntero al mensaje y al payload del mismo 
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command void * Receive.getPayload[uint8_t am](message_t *msg, uint8_t *len){
     return call Packet.getPayload(msg, len);
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  Receive.payloadLength: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  Receive.payloadLength: funcion que devuelve el valor del payload
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command uint8_t Receive.payloadLength[uint8_t am](message_t *msg){
     return call Packet.payloadLength(msg);
@@ -880,7 +880,7 @@ implementation {
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  defaults: "EXPLICAR BIEN QUE ES ESTO"
+  //  defaults: Funciones asociadas por defecto al evento de AMSend.sendDone y Receive.receive donde no 
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   default event void AMSend.sendDone[uint8_t id](message_t* msg, error_t err) {
     return;
