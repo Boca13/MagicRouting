@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -86,7 +87,7 @@ func (p *ProtocoloAPP) enviar(operacion uint8, destino uint16, parametro string,
 	buf := &bytes.Buffer{}
 	err := binary.Write(buf, binary.BigEndian, pktapp)
 	if err != nil {
-		fmt.Println("Error enviando paquete de aplicación :", err)
+		log.Println("Error enviando paquete de aplicación :", err)
 		return err
 	}
 	copy(pktserie.payload[:], buf.Bytes())
@@ -123,8 +124,8 @@ func (s *SerialPort) enviar(paquete Paquete) error {
 	binary.BigEndian.PutUint16(cabecera[4:], s.seqcounter)
 	binary.BigEndian.PutUint16(cabecera[6:], paquete.long)
 	s.seqcounter++
-	fmt.Println(cabecera)
-	fmt.Println(paquete.payload)
+	log.Println(cabecera)
+	log.Println(paquete.payload)
 	_, err := s.port.Write(cabecera)
 	if err != nil {
 		log.Fatalf("Error al escribir cabecera en el puerto serie: %v", err)
@@ -151,12 +152,12 @@ func (s *SerialPort) iniciarRecibir(callback func(PaqueteFlow)) {
 		n, err := s.port.Read(buf)
 		if err != nil {
 			if err != io.EOF {
-				fmt.Println("Error reading from serial port: ", err)
+				log.Println("Error leyendo del puerto serie: ", err)
 			}
 		} else {
 			if n > 8 {
 				buf = buf[:n]
-				fmt.Println("", hex.EncodeToString(buf))
+				log.Println("", hex.EncodeToString(buf))
 
 				var temperatura uint16
 				var humedad uint16
@@ -166,17 +167,17 @@ func (s *SerialPort) iniciarRecibir(callback func(PaqueteFlow)) {
 				reader := bytes.NewReader(buf[8:12])
 				err := binary.Read(reader, binary.BigEndian, &temperatura)
 				if err != nil {
-					fmt.Println("Error recibiendo datos: ", err)
+					log.Println("Error recibiendo datos: ", err)
 				}
 				reader = bytes.NewReader(buf[12:16])
 				err = binary.Read(reader, binary.BigEndian, &humedad)
 				if err != nil {
-					fmt.Println("Error recibiendo datos: ", err)
+					log.Println("Error recibiendo datos: ", err)
 				}
 				reader = bytes.NewReader(buf[16:20])
 				err = binary.Read(reader, binary.BigEndian, &luminosidad)
 				if err != nil {
-					fmt.Println("Error recibiendo datos: ", err)
+					log.Println("Error recibiendo datos: ", err)
 				}
 				reader = bytes.NewReader(buf[20:24])
 				err = binary.Read(reader, binary.BigEndian, &rssi)
@@ -205,7 +206,7 @@ func paqueteRecibido(pkt PaqueteFlow) {
 		luminosidades[id] = list.New()
 		rssis[id] = list.New()
 		ids[len(ids)] = id
-		fmt.Println("Registrado nodo con id: ", id)
+		log.Println("Registrado nodo con id: ", id)
 	}
 
 	temperaturas[pkt.origen].PushFront(pkt.temperatura)
@@ -297,7 +298,6 @@ func handler_valor(w http.ResponseWriter, r *http.Request) {
 	if (len(r.URL.Query()["id"]) == 0) || (len(r.URL.Query()["parametro"]) == 0) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Error en la consulta."))
-		fmt.Fprintln(w, "Error en la consulta.")
 		return
 	}
 	// Extraer id
@@ -307,30 +307,185 @@ func handler_valor(w http.ResponseWriter, r *http.Request) {
 	if temperaturas[id] == nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Error en la consulta: no existe el nodo."))
-		fmt.Fprintln(w, "Error en la consulta: no existe el nodo.")
 	}
 	// Buscar en map el parámetro pedido
 	switch r.URL.Query()["parametro"][0] {
 	case "temperatura":
 		valor := (float64(temperaturas[id].Front().Value.(uint16))*0.01 - 40)
 		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", temperatura: ", valor)
+		log.Println("Consulta: Nodo ", id, ", temperatura: ", valor)
 		break
 	case "humedad":
 		valor := (float64(humedades[id].Front().Value.(uint16)) / 65536.0 * 100)
 		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", humedad: ", valor)
+		log.Println("Consulta: Nodo ", id, ", humedad: ", valor)
 		break
 	case "luminosidad":
 		valor := (float64(luminosidades[id].Front().Value.(uint16)) / 65536.0 * 100)
 		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", luminosidad: ", valor)
+		log.Println("Consulta: Nodo ", id, ", luminosidad: ", valor)
 		break
 	case "rssi":
 		valor := rssis[id].Front().Value.(uint16)
 		w.Write([]byte(strconv.Itoa(int(valor))))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", rssi: ", valor)
+		log.Println("Consulta: Nodo ", id, ", rssi: ", valor)
 		break
+	}
+}
+
+func handler_graficas(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	if (len(r.URL.Query()["id"]) == 0) || (len(r.URL.Query()["parametro"]) == 0) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Error en la consulta."))
+		return
+	}
+	// Extraer id
+	idc, _ := strconv.Atoi(r.URL.Query()["id"][0])
+	id := uint16(idc)
+	// Si no se ha registrado un nodo con ese id
+	if temperaturas[id] == nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Error en la consulta: no existe el nodo."))
+		return
+	}
+
+	// Gráficas
+	parte1, err := ioutil.ReadFile("./graficas1.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Error en la consulta: " + err.Error()))
+		return
+	}
+	parte2, err := ioutil.ReadFile("./graficas2.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Error en la consulta: " + err.Error()))
+		return
+	}
+
+	// Parte 1
+	b := bytes.NewBuffer(parte1)
+	if _, err := b.WriteTo(w); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%s", err)
+	}
+
+	// Imprimir gráfica:
+
+	// 	Buscar en map el parámetro pedido
+	switch r.URL.Query()["parametro"][0] {
+	case "temperatura":
+		w.Write([]byte("document.getElementById('titulo').innerHTML='Temperatura: nodo " + r.URL.Query()["id"][0] + "';\n"))
+		w.Write([]byte("var data = {labels: ["))
+		contador := temperaturas[id].Len()
+		for n := 0; n < contador; n++ {
+			// Labels
+			w.Write([]byte(strconv.Itoa(n)))
+			if n != (contador - 1) {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("],\n datasets: [{data: ["))
+		for e := temperaturas[id].Back(); e != nil; e = e.Prev() {
+			valor := e.Value.(uint16)
+			w.Write([]byte(strconv.Itoa(int(valor))))
+			log.Println((strconv.Itoa(int(valor))))
+			if e.Prev() != nil {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("], label: 'Temperatura',"))
+
+		log.Println("Gráfica Temperatura: Nodo ", id)
+		break
+	case "humedad":
+		w.Write([]byte("document.getElementById('titulo').innerHTML='Humedad: nodo " + r.URL.Query()["id"][0] + "';\n"))
+		w.Write([]byte("var data = {datasets: [{data: ["))
+		// Bucle
+		contador := 0
+		for e := humedades[id].Back(); e != nil; e = e.Prev() {
+			valor := e.Value.(uint16)
+			w.Write([]byte(strconv.Itoa(int(valor))))
+			if e.Prev() != nil {
+				w.Write([]byte(","))
+			}
+			contador++
+		}
+		w.Write([]byte("], label: 'Humedad'}],\nlabels: ["))
+
+		for n := 0; n < contador; n++ {
+			// Labels
+			w.Write([]byte(strconv.Itoa(n)))
+			if n != contador {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("],"))
+
+		log.Println("Gráfica Humedad: Nodo ", id)
+		break
+	case "luminosidad":
+		w.Write([]byte("document.getElementById('titulo').innerHTML='Luminosidad: nodo " + r.URL.Query()["id"][0] + "';\n"))
+		w.Write([]byte("var data = {labels: ["))
+		contador := luminosidades[id].Len()
+		for n := 0; n < contador; n++ {
+			// Labels
+			w.Write([]byte(strconv.Itoa(n)))
+			if n != (contador - 1) {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("],\n datasets: [{data: ["))
+		// Bucle
+		for e := luminosidades[id].Back(); e != nil; e = e.Prev() {
+			valor := e.Value.(uint16)
+			w.Write([]byte(strconv.Itoa(int(valor))))
+			if e.Prev() != nil {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("], label: 'Luminosidad'}]]"))
+
+		log.Println("Gráfica Luminosidad: Nodo ", id)
+		break
+	case "rssi":
+		w.Write([]byte("document.getElementById('titulo').innerHTML='RSSI: nodo " + r.URL.Query()["id"][0] + "';\n"))
+		w.Write([]byte("var data = {datasets: [{data: ["))
+		// Bucle
+		contador := 0
+		for e := rssis[id].Back(); e != nil; e = e.Prev() {
+			valor := e.Value.(uint16)
+			w.Write([]byte(strconv.Itoa(int(valor))))
+			if e.Prev() != nil {
+				w.Write([]byte(","))
+			}
+			contador++
+		}
+		w.Write([]byte("], label: 'RSSI'}],\nlabels: ["))
+
+		for n := 0; n < contador; n++ {
+			// Labels
+			w.Write([]byte(strconv.Itoa(n)))
+			if n != contador {
+				w.Write([]byte(","))
+			}
+		}
+		w.Write([]byte("],"))
+
+		log.Println("Gráfica RSSI: Nodo ", id)
+		break
+	}
+
+	// Parte 2
+	b = bytes.NewBuffer(parte2)
+	if _, err := b.WriteTo(w); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%s", err)
 	}
 }
 
@@ -348,12 +503,22 @@ func main() {
 	// Protocolo APP
 	//app.attach(&serie)
 
+	temperaturas[1] = list.New()
+	var c uint16 = 0
+	for c < 8 {
+		temperaturas[1].PushBack(c * c * c)
+		c++
+	}
+	temperaturas[1].PushBack(uint16(80))
+	temperaturas[1].PushFront(uint16(60))
+
 	// HTTP
 	// Leer web de archivo
-	http.Handle("/", http.FileServer(http.Dir("/web")))
+	http.Handle("/", http.FileServer(http.Dir("web")))
 	//http.HandleFunc("/get", handler_get)
 	//http.HandleFunc("/set", handler_set)
 	http.HandleFunc("/valor", handler_valor)
+	http.HandleFunc("/graficas", handler_graficas)
 	http.ListenAndServe(":80", nil)
 
 	// PRUEBAS
@@ -369,6 +534,6 @@ func main() {
 		log.Fatalf("port.Write: %v", err)
 	}
 
-	fmt.Println("Wrote", n, "bytes.")*/
+	log.Println("Wrote", n, "bytes.")*/
 
 }
