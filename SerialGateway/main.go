@@ -47,10 +47,10 @@ type PaqueteFlow struct {
 	destino     uint16
 	seq         uint16
 	long        uint16 // Número de bytes en payload
-	temperatura float32
-	humedad     float32
-	luminosidad float32
-	rssi        float32
+	temperatura uint16
+	humedad     uint16
+	luminosidad uint16
+	rssi        uint16
 }
 
 type ProtocoloAPP struct {
@@ -158,10 +158,10 @@ func (s *SerialPort) iniciarRecibir(callback func(PaqueteFlow)) {
 				buf = buf[:n]
 				fmt.Println("", hex.EncodeToString(buf))
 
-				var temperatura float32
-				var humedad float32
-				var luminosidad float32
-				var rssi float32
+				var temperatura uint16
+				var humedad uint16
+				var luminosidad uint16
+				var rssi uint16
 
 				reader := bytes.NewReader(buf[8:12])
 				err := binary.Read(reader, binary.BigEndian, &temperatura)
@@ -195,7 +195,23 @@ func paqueteRecibido(pkt PaqueteFlow) {
 	log.Println("Paquete recibido!")
 	log.Printf("Origen: %d; Destino: %d; Secuencia: %d; Longitud: %d; \n", pkt.origen, pkt.destino, pkt.seq, pkt.long)
 	log.Printf("Datos:\n\tTemperatura: %f\n\tHumedad: %f\n\tLuminosidad: %f\n\tRSSI: %f", pkt.temperatura, pkt.humedad, pkt.luminosidad, pkt.rssi)
-	// TODO : Rellenar listas
+
+	var id uint16 = pkt.origen
+
+	// Crear listas si no existen
+	if temperaturas[id] == nil {
+		temperaturas[id] = list.New()
+		humedades[id] = list.New()
+		luminosidades[id] = list.New()
+		rssis[id] = list.New()
+		ids[len(ids)] = id
+		fmt.Println("Registrado nodo con id: ", id)
+	}
+
+	temperaturas[pkt.origen].PushFront(pkt.temperatura)
+	humedades[pkt.origen].PushFront(pkt.humedad)
+	luminosidades[pkt.origen].PushFront(pkt.luminosidad)
+	rssis[pkt.origen].PushFront(pkt.rssi)
 }
 
 // Handlers HTTP
@@ -287,32 +303,33 @@ func handler_valor(w http.ResponseWriter, r *http.Request) {
 	// Extraer id
 	idc, _ := strconv.Atoi(r.URL.Query()["id"][0])
 	id := uint16(idc)
-	// Crear listas si no existen
+	// Si no se ha registrado un nodo con ese id
 	if temperaturas[id] == nil {
-		temperaturas[id] = list.New()
-		humedades[id] = list.New()
-		luminosidades[id] = list.New()
-		rssis[id] = list.New()
-		ids[len(ids)] = id
-		fmt.Println("Registrado nodo con id: ", id)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Error en la consulta: no existe el nodo."))
+		fmt.Fprintln(w, "Error en la consulta: no existe el nodo.")
 	}
 	// Buscar en map el parámetro pedido
 	switch r.URL.Query()["parametro"][0] {
 	case "temperatura":
-		w.Write([]byte(strconv.FormatFloat(temperaturas[id].Front().Value.(float64), 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", temperatura.")
+		valor := (float64(temperaturas[id].Front().Value.(uint16))*0.01 - 40)
+		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
+		fmt.Fprintln(w, "Consulta: Nodo ", id, ", temperatura: ", valor)
 		break
 	case "humedad":
-		w.Write([]byte(strconv.FormatFloat(humedades[id].Front().Value.(float64), 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", humedad.")
+		valor := (float64(humedades[id].Front().Value.(uint16)) / 65536.0 * 100)
+		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
+		fmt.Fprintln(w, "Consulta: Nodo ", id, ", humedad: ", valor)
 		break
 	case "luminosidad":
-		w.Write([]byte(strconv.FormatFloat(luminosidades[id].Front().Value.(float64), 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", luminosidad.")
+		valor := (float64(luminosidades[id].Front().Value.(uint16)) / 65536.0 * 100)
+		w.Write([]byte(strconv.FormatFloat(valor, 'f', 3, 32)))
+		fmt.Fprintln(w, "Consulta: Nodo ", id, ", luminosidad: ", valor)
 		break
 	case "rssi":
-		w.Write([]byte(strconv.FormatFloat(rssis[id].Front().Value.(float64), 'f', 3, 32)))
-		fmt.Fprintln(w, "Consulta: Nodo ", id, ", rssi.")
+		valor := rssis[id].Front().Value.(uint16)
+		w.Write([]byte(strconv.Itoa(int(valor))))
+		fmt.Fprintln(w, "Consulta: Nodo ", id, ", rssi: ", valor)
 		break
 	}
 }
