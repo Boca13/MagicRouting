@@ -624,9 +624,9 @@ implementation {
     printf( "%s\t AODV: SendRREQ.sendDone()\n", "");
     send_pending_ = FALSE;
     rreq_pending_ = FALSE;
-    //call Leds.led0Toggle();
-    //call Leds.led1Toggle();
-    //call Leds.led2Toggle();
+    call Leds.led0Toggle();
+    call Leds.led1Toggle();
+    call Leds.led2Toggle();
   }
   
   //--------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -835,11 +835,13 @@ implementation {
     printf( "%s\t AODV: SubReceive.receive() dest: %d src:%d\n", "", aodv_hdr->dest, aodv_hdr->src);
     
     if( aodv_hdr->dest == call AMPacket.address() ) {
+	
       printf( "%s\t AODV: SubReceive.receive() deliver to upper layer\n", "");
       for( i=0;i<len;i++ ) {
         p_app_msg_->data[i] = aodv_hdr->data[i];
       }
-      p_msg = signal Receive.receive[aodv_hdr->app]( p_app_msg_, p_app_msg_->data, len - AODV_MSG_HEADER_LEN );
+      p_msg = signal Receive.receive[aodv_hdr->app]( p_app_msg_, p_app_msg_->data, len - AODV_MSG_HEADER_LEN );    	
+
     } else {
       am_addr_t nexthop = get_next_hop( aodv_hdr->dest );
       printf( "%s\t AODV: SubReceive.receive() deliver to next hop:%x\n", "", nexthop);
@@ -887,6 +889,16 @@ implementation {
   }
   
   default event message_t* Receive.receive[am_id_t id](message_t* msg, void* payload, uint8_t len) {
+  	if (len == sizeof(DataPacket)){
+  		DataPacket* btrpkt = (DataPacket*)payload;
+  		printf("\t APPS: EL PAQUETE ES BUENO\n");
+  		printf("\n\n\n \t PAQUETE:\n");
+  		printf("\tHumedad: %d\n",btrpkt->humedad);
+  		printf("\tNumero secuencia: %d\n",btrpkt->seq);
+  		printf("\tOrigen: %d\n",btrpkt->fuente);
+  		call Leds.led2Toggle();
+  	}
+
     return msg;
   }
   
