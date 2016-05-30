@@ -240,7 +240,8 @@ func paqueteRecibido(pkt PaqueteFlow) {
 func paqueteTXT(txt string) {
 	indice := strings.Index(txt, "SERVIDOR")
 	if indice == -1 {
-		log.Println("Paquete descartado")
+		log.Println("Paquete descartado:")
+		//log.Println(txt)
 		return
 	}
 
@@ -463,8 +464,8 @@ func handler_graficas(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write([]byte("],\n datasets: [{data: ["))
 		for e := temperaturas[id].Back(); e != nil; e = e.Prev() {
-			valor := e.Value.(uint16)
-			w.Write([]byte(strconv.Itoa(int(valor))))
+			valor := (float64(e.Value.(uint16))*0.01 - 40)
+			w.Write([]byte(strconv.FormatFloat(valor, 'f', 4, 64)))
 			if e.Prev() != nil {
 				w.Write([]byte(","))
 			}
