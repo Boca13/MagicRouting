@@ -146,7 +146,7 @@ implementation {
   }
   
   //--------------------------------------------------------------------------------------------------------------------------------
-  //  AMControl.stopDone: "FALTA POR COMENTAR"
+  //  AMControl.stopDone: Función que llama al comando  stop de la interfaz AODVTimer
   //--------------------------------------------------------------------------------------------------------------------------------
   event void AMControl.stopDone(error_t e){
     call AODVTimer.stop();
@@ -755,7 +755,7 @@ implementation {
   }
   
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  //  AMSend.cancel: "HAY EXPLICAR BIEN QUE HACE ESTA FUNCION"
+  //  AMSend.cancel: Método que llama al comando cancel de la interfaz SubSend y devuelve su resultado
   //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   command error_t AMSend.cancel[am_id_t id](message_t* msg) { 
     return call SubSend.cancel(msg);
