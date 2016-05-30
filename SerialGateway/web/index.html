@@ -9,6 +9,11 @@
     <script type="text/javascript" src="http://netdna.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <link href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
     <link href="http://pingendo.github.io/pingendo-bootstrap/themes/default/bootstrap.css" rel="stylesheet" type="text/css">
+	<style>
+	form{color:white;}
+	select{margin:0.5em; color: black;}
+	#resultado{border: 2px; background-color: rgba(200,200,200,0.8); border-radius: 5px; padding: 3em; margin: 2em auto; width: 10em;}
+	</style>
   </head><body>
     <div class="navbar navbar-default navbar-fixed-bottom navbar-inverse">
       <div class="container">
@@ -34,7 +39,7 @@
       </div>
     </div>
     <div class="cover">
-      <div class="cover-image" style="background-image : url('http://wallpaper.zone/img/3049389.jpg')"></div>
+      <div class="cover-image" style="background-image : url('img/fondo.jpg')"></div>
       <div class="container">
         <div class="row">
           <div class="col-md-12 text-center">
@@ -44,27 +49,49 @@
             <br>
 			<form style="background-color: rgba(50, 50, 50, 0.8);">
 				<span>Nodo:</span>
-				<select>
+				<select id="selNodo">
 					<option value="1">Nodo 1</option>
 					<option value="2">Nodo 2</option>
 					<option value="3">Nodo 3</option>
 					<option value="4">Nodo 4</option>
 				</select>
 				<br>
-				<span>Parámetro: </span><select>
-					<option value="1">Nodo 1</option>
-					<option value="2">Nodo 2</option>
-					<option value="3">Nodo 3</option>
-					<option value="4">Nodo 4</option>
+				<span>Parámetro: </span>
+				<select id="selPar">
+					<option value="temperatura">Temperatura</option>
+					<option value="humedad">Humedad</option>
+					<option value="luminosidad">Luminosidad</option>
+					<option value="rssi">RSSI</option>
 				</select>
 				<br>
-				<a style="margin: 1em;" class="btn btn-lg btn-primary"><img src="img/favicon/favicon.ico" alt="Let's Route"></a>
-				<a style="margin: 1em;" class="btn btn-lg btn-primary">Histórico</a>
+				<a id="valor" style="margin: 1em;" class="btn btn-lg btn-primary"><img src="img/favicon/favicon.ico" alt="Let's Route"></a>
+				<a id="graficas" style="margin: 1em;" class="btn btn-lg btn-primary">Histórico</a>
 			</form>
+			<div id="resultado">
+			</div>
           </div>
         </div>
       </div>
     </div>
-  
-
+	<script>
+	$("#valor").click(function(){
+		$.ajax( {
+				url: '/valor?id='+$("#selNodo").val()+"&parametro="+$("#selPar").val(),
+				type: 'GET',
+				processData: false,
+				contentType: false
+			}).done(function( data ) {
+				if(data=='') {
+					$('#resultado').html('<h4>Error al obtener resultados</h4>');
+				} else {
+					$('#resultado').html(data);
+				}
+			}).fail(function(x, status, error) {
+				$('#resultado').html('<h4>Error: '+status+'</h4><p>'+error+'</p>');
+			});
+	});
+	$("#graficas").click(function(){
+		window.location="/graficas?id="+$("#selNodo").val()+"&parametro="+$("#selPar").val();
+	});
+	</script>
 </body></html>

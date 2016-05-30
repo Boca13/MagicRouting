@@ -11,7 +11,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 )
 
 import "github.com/jacobsa/go-serial/serial"
@@ -26,7 +28,8 @@ var luminosidades map[uint16]*list.List = make(map[uint16]*list.List)
 var rssis map[uint16]*list.List = make(map[uint16]*list.List)
 
 //Lista de IDs
-var ids []uint16 = make([]uint16, 1)
+var ids []uint16 = make([]uint16, 5, 10)
+var nNodos uint8 = 0
 
 type PaqueteAPP struct {
 	operacion uint8
@@ -192,6 +195,25 @@ func (s *SerialPort) iniciarRecibir(callback func(PaqueteFlow)) {
 	}
 }
 
+func (s *SerialPort) iniciarRecibirTXT(callback func(string)) {
+
+	s.flagCerrar = false
+	for s.flagCerrar == false {
+		buf := make([]byte, MAX_PACKET)
+		n, err := s.port.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				log.Println("Error leyendo del puerto serie: ", err)
+			}
+		} else {
+			if n > 4 {
+				recibido := string(buf[:n])
+				callback(recibido)
+			}
+		}
+	}
+}
+
 func paqueteRecibido(pkt PaqueteFlow) {
 	log.Println("Paquete recibido!")
 	log.Printf("Origen: %d; Destino: %d; Secuencia: %d; Longitud: %d; \n", pkt.origen, pkt.destino, pkt.seq, pkt.long)
@@ -213,6 +235,55 @@ func paqueteRecibido(pkt PaqueteFlow) {
 	humedades[pkt.origen].PushFront(pkt.humedad)
 	luminosidades[pkt.origen].PushFront(pkt.luminosidad)
 	rssis[pkt.origen].PushFront(pkt.rssi)
+}
+
+func paqueteTXT(txt string) {
+	indice := strings.Index(txt, "SERVIDOR")
+	if indice == -1 {
+		log.Println("Paquete descartado")
+		return
+	}
+
+	txt = txt[(indice + 9):]
+	lineas := strings.Split(txt, "\n")
+	txt = lineas[0]
+
+	datos := strings.Split(txt, ";")
+	idint, err := strconv.Atoi(datos[0])
+	if err != nil {
+		log.Println("Paquete inválido. ", err.Error())
+	}
+
+	var id uint16 = uint16(idint)
+
+	// Crear listas si no existen
+	if temperaturas[id] == nil {
+		temperaturas[id] = list.New()
+		humedades[id] = list.New()
+		luminosidades[id] = list.New()
+		rssis[id] = list.New()
+		ids[nNodos] = id
+		nNodos++
+		log.Println("Registrado nodo con id: ", id)
+
+	}
+	secuencia, err := strconv.Atoi(datos[1])
+	temperatura, err := strconv.Atoi(datos[2])
+
+	log.Println("Paquete recibido para servidor. Origen: ", strconv.Itoa(int(id)), ". Secuencia: ", strconv.Itoa(secuencia))
+	log.Println("	Temperatura: ", temperatura)
+
+	if err != nil {
+		log.Println("Paquete inválido. ", err.Error())
+	}
+	humedad := 0
+	luminosidad := 0
+	rssi := 0
+
+	temperaturas[id].PushFront(uint16(temperatura))
+	humedades[id].PushFront(uint16(humedad))
+	luminosidades[id].PushFront(uint16(luminosidad))
+	rssis[id].PushFront(uint16(rssi))
 }
 
 // Handlers HTTP
@@ -394,7 +465,6 @@ func handler_graficas(w http.ResponseWriter, r *http.Request) {
 		for e := temperaturas[id].Back(); e != nil; e = e.Prev() {
 			valor := e.Value.(uint16)
 			w.Write([]byte(strconv.Itoa(int(valor))))
-			log.Println((strconv.Itoa(int(valor))))
 			if e.Prev() != nil {
 				w.Write([]byte(","))
 			}
@@ -494,23 +564,26 @@ var serie SerialPort
 var app ProtocoloAPP
 
 func main() {
-
+	puerto := "COM5"
+	if len(os.Args) > 1 {
+		puerto = os.Args[0]
+	}
 	// Puerto serie
-	//serie.inicializar(161, "COM3")
-	//serie.iniciarRecibir(paqueteRecibido)
-	//defer serie.cerrar()
+	serie.inicializar(161, puerto)
+	go serie.iniciarRecibirTXT(paqueteTXT)
+	defer serie.cerrar()
 
 	// Protocolo APP
-	//app.attach(&serie)
+	app.attach(&serie)
 
-	temperaturas[1] = list.New()
+	/*temperaturas[1] = list.New()
 	var c uint16 = 0
 	for c < 8 {
 		temperaturas[1].PushBack(c * c * c)
 		c++
 	}
 	temperaturas[1].PushBack(uint16(80))
-	temperaturas[1].PushFront(uint16(60))
+	temperaturas[1].PushFront(uint16(60))*/
 
 	// HTTP
 	// Leer web de archivo
@@ -520,20 +593,5 @@ func main() {
 	http.HandleFunc("/valor", handler_valor)
 	http.HandleFunc("/graficas", handler_graficas)
 	http.ListenAndServe(":80", nil)
-
-	// PRUEBAS
-	// Enviar paquete
-	/*pkt := Paquete{161, 162, 1, 5, nil}
-	pkt.payload = []byte{'H', 'o', 'l', 'a', '!'}
-	serie.enviar(pkt)*/
-
-	/*// Write 4 bytes to the port.
-	b := []byte{0x00, 0x01, 0x02, 0x03}
-	n, err := port.Write(b)
-	if err != nil {
-		log.Fatalf("port.Write: %v", err)
-	}
-
-	log.Println("Wrote", n, "bytes.")*/
 
 }
