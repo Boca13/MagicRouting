@@ -569,7 +569,10 @@ func main() {
 		puerto = os.Args[1]
 	}
 	// Puerto serie
-	serie.inicializar(161, puerto)
+	err := serie.inicializar(161, puerto)
+	if err != nil {
+		log.Println("Error al inicializar: ", err)
+	}
 	go serie.iniciarRecibirTXT(paqueteTXT)
 	defer serie.cerrar()
 
