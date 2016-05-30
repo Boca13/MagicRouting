@@ -566,7 +566,7 @@ var app ProtocoloAPP
 func main() {
 	puerto := "COM5"
 	if len(os.Args) > 1 {
-		puerto = os.Args[0]
+		puerto = os.Args[1]
 	}
 	// Puerto serie
 	serie.inicializar(161, puerto)
