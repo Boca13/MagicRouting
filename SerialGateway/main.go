@@ -564,7 +564,7 @@ var serie SerialPort
 var app ProtocoloAPP
 
 func main() {
-	puerto := "COM5"
+	puerto := "COM4"
 	if len(os.Args) > 1 {
 		puerto = os.Args[1]
 	}
