@@ -3,7 +3,7 @@
         <meta name="keywords" content="about, project">
         <meta name="description" content="About the project">
         <meta charset="utf-8">
-        <title>goRead - About</title>
+        <title>MagicRouting - About</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
         <script type="text/javascript" src="http://netdna.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
@@ -16,7 +16,6 @@
                 <div class="row">
                     <div class="col-md-12 text-center">
                         <h1 class="text-inverse">Sobre el proyecto</h1>
-                        <p class="text-inverse" contenteditable="true">texto que despues puede que quite</p>
                         <br>
                         <br>
                     </div>
@@ -34,7 +33,8 @@
                     <img class="center-block img-circle" src="http://trading.divblocks.com/static/uploads/goimg1910.png" alt="Generic placeholder image" width="140" height="140">
                     <h2 class="text-center">Golang</h2>
                     <p class="text-center">Lenguaje utilizado en la lógica del servidor.
-                        <br>Contiene un lector del puerto serie y un manejador http con la web que se expone al usuario</p>
+                        <br>Contiene un lector del puerto serie y un manejador http con la web que
+                        se expone al usuario</p>
                 </div>
                 <!-- /.col-lg-4 -->
                 <div class="col-lg-4">
@@ -73,10 +73,14 @@
                         <br>
                         <br>Red de telosb
                         <br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;dedicada a tomar muestras de
-                        temperatura/humedad/luz
+                        temperatura
                         <br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;apoyada sobre AODV para enviar
                         datos al gateway
-                        <br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
+                        <br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        <br>
+                        <br>¿Propósito?
+                        <br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;crear librería AODV para hacer invisible
+                        el protocolo a nivel app</p>
                 </div>
                 <div class="col-md-5">
                     <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="500x500" src="http://i.imgur.com/uPpj2LM.png" data-holder-rendered="true">
@@ -116,8 +120,13 @@
             <br>
             <div class="col-md-7 ">
                 <h2 class="featurette-heading ">AODV. Funcionamiento</h2>
-                <p class="lead ">Nodo 1 quiere transmitir un paquete al nodo 4<br>Envia en difusión un mensaje de RREQ<br><br>Nodo 2 recibe paquete y guarda en al caché de RREQ los datos que envió el nodo 1 (seq,src,dest...)<br>Nodo 2 crea la primera ruta entre él y el nodo 1
-                </p>
+                <p class="lead ">Nodo 1 quiere transmitir un paquete al nodo 4
+                    <br>Envia en difusión un mensaje de RREQ
+                    <br>
+                    <br>Nodo 2 recibe paquete y guarda en al caché de RREQ los datos que envió
+                    el nodo 1 (seq,src,dest...)
+                    <br>Nodo 2 crea la primera ruta entre él y el nodo 1
+                    <br>Nodo 2 envía caché RREQ a nodo3</p>
             </div>
             <div class="col-md-5 ">
                 <img class="featurette-image img-responsive center-block
@@ -145,13 +154,13 @@
                         <span class="icon-bar "></span>
                         <span class="icon-bar "></span>
                     </button>
-                    <a class="navbar-brand " href="/ "><img height="20
-      " alt="Brand " src="img\logoRouting.png"></a>
+                    <a class="navbar-brand " href="index.html "><img height="20
+      " alt="Brand " src="http://i.imgur.com/fXjXfId.png"></a>
                 </div>
                 <div class="collapse navbar-collapse " id="navbar-ex-collapse ">
                     <ul class="nav navbar-nav navbar-right ">
                         <li>
-                            <a href="/ ">Inicio</a>
+                            <a href="index.html ">Inicio</a>
                         </li>
                     </ul>
                 </div>
@@ -171,7 +180,11 @@
             <div class="row featurette">
                 <div class="col-md-7">
                     <h2 class="featurette-heading">AODV. Funcionamiento</h2>
-                    <p class="lead">Se produce el inundamiento de RREQ's en la red<br><br>Tablas de rutas se actualizan<br></p>
+                    <p class="lead">Se produce el inundamiento de RREQ's en la red
+                        <br>
+                        <br>Tablas de rutas se actualizan
+                        <br>
+                    </p>
                 </div>
                 <div class="col-md-5">
                     <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="500x500" src="http://www2.engr.arizona.edu/~junseok/images/aodv2.jpg" data-holder-rendered="true">
@@ -187,7 +200,10 @@
             <div class="row featurette">
                 <div class="col-md-7 col-md-push-5">
                     <h2 class="featurette-heading">AODV. Funcionamiento</h2>
-                    <p class="lead">Cuando el nodo 4 recibe el RREQ ya se ha formado la ruta<br><br>Intenta enviar un mensaje de RREP en sentido inverso al flujo de RREQ's para consolidar la ruta</p>
+                    <p class="lead">Cuando el nodo 4 recibe el RREQ ya se ha formado la ruta
+                        <br>
+                        <br>Intenta enviar un mensaje de RREP en sentido inverso al flujo de RREQ's
+                        para consolidar la ruta</p>
                 </div>
                 <div class="col-md-5 col-md-pull-7">
                     <img class="center-block featurette-image img-responsive" data-src="holder.js/500x500/auto" alt="500x500" src="http://www2.engr.arizona.edu/~junseok/images/aodv2_1.jpg" data-holder-rendered="true">
@@ -202,7 +218,11 @@
             <br>
             <div class="col-md-7 ">
                 <h2 class="featurette-heading ">AODV. Funcionamiento</h2>
-                <p class="lead ">Nodos intermedios reenvian el paquete RREP hacia el nodo 1<br>Usan lo aprendido en sus tablas de rutas<br><br>Nodo 1 actualiza su tabla de rutas y se establece ruta<br>
+                <p class="lead ">Nodos intermedios reenvian el paquete RREP hacia el nodo 1
+                    <br>Usan lo aprendido en sus tablas de rutas
+                    <br>
+                    <br>Nodo 1 actualiza su tabla de rutas y se establece ruta
+                    <br>
                 </p>
             </div>
             <div class="col-md-5 ">
@@ -241,7 +261,10 @@
             <div class="row featurette">
                 <div class="col-md-7 col-md-push-5">
                     <h2 class="featurette-heading">AODV. Fallo en la transmision de datos</h2>
-                    <p class="lead">Nodos intermedios envian al origen un paquete de RERR<br>Nodo 1 borrará esa ruta de su tabla de rutas<br><br>Vuelve a ejecutar algoritmo de descubrimiento</p>
+                    <p class="lead">Nodos intermedios envian al origen un paquete de RERR
+                        <br>Nodo 1 borrará esa ruta de su tabla de rutas
+                        <br>
+                        <br>Vuelve a ejecutar algoritmo de descubrimiento</p>
                 </div>
                 <div class="col-md-5 col-md-pull-7">
                     <img class="center-block featurette-image img-responsive" data-src="holder.js/500x500/auto" alt="500x500" src="http://www2.engr.arizona.edu/~junseok/images/aodv5.jpg" data-holder-rendered="true">
@@ -288,7 +311,10 @@
                     <h2 class="featurette-heading">Gateway</h2>
                     <p class="lead">Raspberry pi
                         <br>Ejecutando servidor en Golang
-                        <br>Lectura puerto serie. Parseo de datos para el servidor HTTP<br><br><br>Movilidad++
+                        <br>Lectura puerto serie. Parseo de datos para el servidor HTTP
+                        <br>
+                        <br>
+                        <br>Movilidad++
                         <br>Modulo 3G?</p>
                 </div>
                 <div class="col-md-5">
@@ -302,7 +328,8 @@
             <br>
             <br>
             <br>
-        </div><div class="container marketing">
+        </div>
+        <div class="container marketing">
             <!-- Three columns of text below the carousel -->
             <!-- /.row -->
             <!-- START THE FEATURETTES -->
@@ -316,10 +343,46 @@
             <div class="row featurette">
                 <div class="col-md-7">
                     <h2 class="featurette-heading">Pruebas realizadas</h2>
-                    <p class="lead">Desconexion de nodos intermedios<br>Desconexion del gateway<br>Adición de nuevos nodos al sistema<br><br><br>Pasado un tiempo prudente (~5 segundos) -&gt; Funcionamiento correcto<br></p>
+                    <p class="lead">Desconexion de nodos intermedios
+                        <br>Desconexion del gateway
+                        <br>Adición de nuevos nodos al sistema&nbsp;
+                        <br>Movimiento de nodos intermedios
+                        <br>
+                        <br>Pasado un tiempo prudente -&gt; Funcionamiento correcto&nbsp;<br><br><br>¿Conclusiones?<br>&nbsp; &nbsp; &nbsp; Muchos nodos -&gt; sobrecarga de señalización<br>&nbsp; &nbsp; &nbsp; Óptimo para poca tasa constante de información<br>&nbsp; &nbsp; &nbsp; Escalable. Robusto ante fallos
+                    </p>
                 </div>
                 <div class="col-md-5">
                     <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="500x500" src="http://pre04.deviantart.net/30a4/th/pre/i/2011/044/e/c/crash_test_dummy_by_mcandre-d39gdgk.png" data-holder-rendered="true">
+                </div>
+            </div>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+        </div>
+        <div class="container marketing">
+            <!-- Three columns of text below the carousel -->
+            <!-- /.row -->
+            <!-- START THE FEATURETTES -->
+            <br>
+            <br>
+            <br>
+            <hr class="featurette-divider">
+            <br>
+            <br>
+            <br>
+            <div class="row featurette">
+                <div class="col-md-7">
+                    <h2 class="featurette-heading">Trabajo futuro</h2>
+                    <p class="lead">Implementar algoritmo para simulación (Matlab / ns2...)
+                        <br>Seguridad en la capa de aplicación
+                        <br>Predicción de disponibilidad de ruta</p>
+                </div>
+                <div class="col-md-5">
+                    <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="500x500" src="http://enfoqueintegral.com.mx/wp-content/uploads/2014/12/icono-mejora-continua-azul.png" data-holder-rendered="true">
                 </div>
             </div>
             <br>
