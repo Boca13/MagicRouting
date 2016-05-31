@@ -241,6 +241,7 @@ func paqueteTXT(txt string) {
 	indice := strings.Index(txt, "SERVIDOR")
 	if indice == -1 {
 		log.Println("Paquete descartado:")
+		// Descomentar para depurar
 		//log.Println(txt)
 		return
 	}
@@ -579,15 +580,6 @@ func main() {
 
 	// Protocolo APP
 	app.attach(&serie)
-
-	/*temperaturas[1] = list.New()
-	var c uint16 = 0
-	for c < 8 {
-		temperaturas[1].PushBack(c * c * c)
-		c++
-	}
-	temperaturas[1].PushBack(uint16(80))
-	temperaturas[1].PushFront(uint16(60))*/
 
 	// HTTP
 	// Leer web de archivo
